@@ -1,14 +1,16 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/api';
-import { apiErrorTranslationKey } from '../api/errors';
+import { resolveApiError } from '../api/errors';
+import { TermsPanel } from '../components/TermsPanel';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
 import { CaptchaResponse } from '../types/api';
 import { generateRecoveryKey } from '../utils/format';
-import { TermsPanel } from '../components/TermsPanel';
 
 type Mode = 'login' | 'register' | 'recover';
+
+const CAPTCHA_REFRESH_MS = 8 * 60 * 1000;
 
 export function AuthPage() {
   const [mode, setMode] = useState<Mode>('login');
@@ -29,11 +31,31 @@ export function AuthPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  const captchaRequired = mode === 'register' || mode === 'recover';
+
+  const refreshCaptcha = useCallback(async () => {
+    try {
+      const nextCaptcha = await api.getCaptcha();
+      setCaptcha(nextCaptcha);
+      setCaptchaAnswer('');
+    } catch (err) {
+      setError(resolveApiError(err, t));
+    }
+  }, [t]);
+
+  const switchMode = (nextMode: Mode) => {
+    setMode(nextMode);
+    setError('');
+    setSuccess('');
+    setCaptchaAnswer('');
+  };
+
   const canSubmit = useMemo(() => {
     const name = username.trim();
-    if (!name || !password.trim() || !captchaAnswer.trim() || !captcha) return false;
+    if (!name || !password.trim()) return false;
+    if (captchaRequired && (!captchaAnswer.trim() || !captcha)) return false;
     if (mode === 'register') {
-      if (!termsAccepted) return false;
+      if (!termsAccepted || usernameAvailable === false) return false;
       if (name.length < 3 || name.length > 50) return false;
       if (password.length < 8 || password.length > 100) return false;
     }
@@ -43,7 +65,7 @@ export function AuthPage() {
       if (password.length < 8 || password.length > 100) return false;
     }
     return true;
-  }, [captcha, captchaAnswer, mode, password, recoveryKey, termsAccepted, username]);
+  }, [captcha, captchaAnswer, captchaRequired, mode, password, recoveryKey, termsAccepted, username, usernameAvailable]);
 
   const validationHint = useMemo(() => {
     const name = username.trim();
@@ -53,8 +75,11 @@ export function AuthPage() {
     if ((mode === 'register' || mode === 'login' || mode === 'recover') && password.length > 0 && password.length < 8) {
       return t('errorPasswordLength');
     }
+    if (mode === 'register' && usernameAvailable === false) {
+      return t('errorUsernameTaken');
+    }
     return '';
-  }, [mode, password, t, username]);
+  }, [mode, password, t, username, usernameAvailable]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -62,18 +87,20 @@ export function AuthPage() {
     }
   }, [isAuthenticated, navigate]);
 
-  async function refreshCaptcha() {
-    try {
-      const nextCaptcha = await api.getCaptcha();
-      setCaptcha(nextCaptcha);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Captcha error');
+  useEffect(() => {
+    if (!captchaRequired) {
+      setCaptcha(null);
+      setCaptchaAnswer('');
+      return;
     }
-  }
+    void refreshCaptcha();
+  }, [captchaRequired, refreshCaptcha]);
 
   useEffect(() => {
-    void refreshCaptcha();
-  }, []);
+    if (!captchaRequired) return undefined;
+    const timer = window.setInterval(() => void refreshCaptcha(), CAPTCHA_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [captchaRequired, refreshCaptcha]);
 
   useEffect(() => {
     if (mode !== 'register' || username.trim().length < 3) {
@@ -95,7 +122,7 @@ export function AuthPage() {
     event.preventDefault();
     setError('');
     setSuccess('');
-    if (!captcha) return;
+    if (captchaRequired && !captcha) return;
 
     setBusy(true);
     try {
@@ -114,7 +141,7 @@ export function AuthPage() {
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
           locale,
           termsAccepted,
-          captchaId: captcha.captchaId,
+          captchaId: captcha!.captchaId,
           captchaAnswer,
         });
         login({ token: result.auth.token, user: result.auth }, rememberMe);
@@ -127,19 +154,22 @@ export function AuthPage() {
         username: username.trim(),
         recoveryKey,
         newPassword: password,
-        captchaId: captcha.captchaId,
+        captchaId: captcha!.captchaId,
         captchaAnswer,
       });
-      setSuccess('Password updated. Please login.');
-      setMode('login');
+      setSuccess(t('authRecoverSuccess'));
+      switchMode('login');
     } catch (err) {
-      const raw = err instanceof Error ? err.message : 'Request failed';
-      const key = apiErrorTranslationKey(raw);
-      setError(key ? t(key) : raw);
+      const message = resolveApiError(err, t);
+      setError(message);
+      if (captchaRequired) {
+        await refreshCaptcha();
+        if (message === t('errorCaptchaExpired') || message === t('errorCaptchaMismatch')) {
+          setError(`${message}. ${t('authCaptchaRefreshed')}`);
+        }
+      }
     } finally {
       setBusy(false);
-      setCaptchaAnswer('');
-      void refreshCaptcha();
     }
   }
 
@@ -149,31 +179,36 @@ export function AuthPage() {
         <h1>{t('brand')}</h1>
         <p className="muted">{t('brandSub')}</p>
         <div className="auth-tabs">
-          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>
+          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => switchMode('login')}>
             {t('authLoginTab')}
           </button>
-          <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>
+          <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => switchMode('register')}>
             {t('authRegisterTab')}
           </button>
-          <button type="button" className={mode === 'recover' ? 'active' : ''} onClick={() => setMode('recover')}>
+          <button type="button" className={mode === 'recover' ? 'active' : ''} onClick={() => switchMode('recover')}>
             {t('authRecoverTab')}
           </button>
         </div>
 
         <form onSubmit={onSubmit}>
           <label>{t('authUsername')}</label>
-          <input value={username} onChange={(event) => setUsername(event.target.value)} />
+          <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
           {mode === 'register' && <p className="field-hint">{t('authUsernameHint')}</p>}
 
           {mode === 'register' && (
             <>
               <label>{t('authEmail')}</label>
-              <input value={email} type="email" onChange={(event) => setEmail(event.target.value)} />
+              <input value={email} type="email" onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
             </>
           )}
 
           <label>{t('authPassword')}</label>
-          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+          />
           {(mode === 'register' || mode === 'recover') && <p className="field-hint">{t('authPasswordHint')}</p>}
 
           {mode === 'recover' && (
@@ -195,22 +230,27 @@ export function AuthPage() {
                 <span>{t('authTerms')}</span>
               </label>
               <TermsPanel />
-              {usernameAvailable === false && <p className="error">{t('errorUsernameTaken')}</p>}
             </>
           )}
 
-          <label>{t('authCaptcha')}</label>
-          <div className="field-row">
-            <div className="captcha-question">{captcha?.question ?? t('loading')}</div>
-            <button type="button" className="ghost" onClick={() => void refreshCaptcha()}>
-              ↻
-            </button>
-          </div>
-          <input
-            value={captchaAnswer}
-            placeholder={t('authCaptchaPlaceholder')}
-            onChange={(event) => setCaptchaAnswer(event.target.value)}
-          />
+          {captchaRequired && (
+            <>
+              <label>{t('authCaptcha')}</label>
+              <div className="field-row">
+                <div className="captcha-question">{captcha?.question ?? t('loading')}</div>
+                <button type="button" className="ghost" onClick={() => void refreshCaptcha()} title={t('authCaptchaRefresh')}>
+                  ↻
+                </button>
+              </div>
+              <input
+                value={captchaAnswer}
+                placeholder={t('authCaptchaPlaceholder')}
+                onChange={(event) => setCaptchaAnswer(event.target.value)}
+                inputMode="numeric"
+              />
+              <p className="field-hint">{t('authCaptchaHint')}</p>
+            </>
+          )}
 
           {(mode === 'login' || mode === 'register') && (
             <label className="remember">
@@ -220,12 +260,12 @@ export function AuthPage() {
           )}
 
           {mode === 'login' && (
-            <button type="button" className="link-like" onClick={() => setMode('recover')}>
+            <button type="button" className="link-like" onClick={() => switchMode('recover')}>
               {t('authForgot')}
             </button>
           )}
           {mode === 'recover' && (
-            <button type="button" className="link-like" onClick={() => setMode('login')}>
+            <button type="button" className="link-like" onClick={() => switchMode('login')}>
               {t('authBackToLogin')}
             </button>
           )}

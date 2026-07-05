@@ -31,13 +31,13 @@ public class AuthService {
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
-        captchaService.verify(request.captchaId(), request.captchaAnswer());
-        if (userRepository.existsByUsernameIgnoreCase(request.username())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Username already exists");
-        }
         if (!request.termsAccepted()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Terms must be accepted");
         }
+        if (userRepository.existsByUsernameIgnoreCase(request.username())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Username already exists");
+        }
+        captchaService.verify(request.captchaId(), request.captchaAnswer());
 
         String recoveryKey = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         User user = new User();
@@ -64,9 +64,9 @@ public class AuthService {
 
     @Transactional
     public void recoverPassword(RecoverPasswordRequest request) {
-        captchaService.verify(request.captchaId(), request.captchaAnswer());
         User user = userRepository.findByUsernameIgnoreCase(request.username())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        captchaService.verify(request.captchaId(), request.captchaAnswer());
         if (!passwordEncoder.matches(request.recoveryKey(), user.getRecoveryKeyHash())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Recovery key is invalid");
         }

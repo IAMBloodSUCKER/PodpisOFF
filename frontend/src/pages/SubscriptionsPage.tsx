@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/api';
+import { resolveApiError } from '../api/errors';
 import { useI18n } from '../context/I18nContext';
 import { Subscription } from '../types/api';
 import { currency, dateLabel } from '../utils/format';
@@ -25,7 +26,7 @@ export function SubscriptionsPage() {
       const list = await api.listSubscriptions();
       setItems(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load subscriptions');
+      setError(resolveApiError(err, t));
     }
   }
 

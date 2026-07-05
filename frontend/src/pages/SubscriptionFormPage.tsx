@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/api';
+import { resolveApiError } from '../api/errors';
 import { OffToggle } from '../components/OffToggle';
 import { useI18n } from '../context/I18nContext';
 
@@ -31,7 +32,7 @@ export function SubscriptionFormPage() {
         setNextBillingDate(current.nextBillingDate);
         setActive(current.active);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load subscription'));
+      .catch((err) => setError(resolveApiError(err, t)));
   }, [id]);
 
   async function onSubmit(event: FormEvent) {
@@ -53,7 +54,7 @@ export function SubscriptionFormPage() {
       }
       navigate('/subscriptions');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed');
+      setError(resolveApiError(err, t));
     }
   }
 

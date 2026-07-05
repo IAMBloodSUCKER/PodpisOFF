@@ -9,3 +9,8 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+
+app:
+  jwt:
+    secret: test-secret-test-secret-test-secret-test-secret-xx
+    expiration-seconds: 3600

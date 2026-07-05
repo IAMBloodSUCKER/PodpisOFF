@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/api';
+import { resolveApiError } from '../api/errors';
 import { useI18n } from '../context/I18nContext';
 import { DashboardSummary } from '../types/api';
 import { currency, dateLabel } from '../utils/format';
@@ -13,7 +14,7 @@ export function DashboardPage() {
     api
       .dashboardSummary()
       .then(setSummary)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load dashboard'));
+      .catch((err) => setError(resolveApiError(err, t)));
   }, []);
 
   if (error) return <p className="error">{error}</p>;

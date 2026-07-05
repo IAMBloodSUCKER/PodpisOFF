@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/api';
+import { resolveApiError } from '../api/errors';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
 import { BillingStatus } from '../types/api';
@@ -16,7 +17,7 @@ export function SettingsPage() {
     api
       .billingStatus()
       .then(setBilling)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load settings'));
+      .catch((err) => setError(resolveApiError(err, t)));
   }, []);
 
   function onLogout() {
