@@ -459,7 +459,7 @@ PodpisOFF/
 ## Быстрый старт через Docker
 
 ```bash
-git clone https://github.com/YOUR_USER/PodpisOFF.git
+git clone https://github.com/IAMBloodSUCKER/PodpisOFF.git
 cd PodpisOFF
 docker compose up --build -d
 ```
