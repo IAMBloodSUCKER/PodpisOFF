@@ -1,7 +1,9 @@
 # Dependencies
 frontend/node_modules/
 backend/target/
-backend/.mvn/wrapper/maven-wrapper.jar
+backend/.mvn/apache-maven-*/
+backend/.mvn/*.zip
+backend/.mvn/*.tar.gz
 
 # IDE
 .idea/

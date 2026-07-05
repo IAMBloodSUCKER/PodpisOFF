@@ -1,38 +1,27 @@
-# Publish to GitHub (run once after: gh auth login)
+# Publish to GitHub
 
-$ErrorActionPreference = "Stop"
-$gh = "$env:TEMP\gh-cli\bin\gh.exe"
-if (-not (Test-Path $gh)) {
-    Write-Host "Download gh CLI first or install: winget install GitHub.cli"
-    exit 1
-}
+Requires one-time login: `gh auth login` (or open https://github.com/login/device)
 
-& $gh auth status
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Run: gh auth login"
-    exit 1
-}
-
-Set-Location $PSScriptRoot\..
-
-if (-not (Test-Path .git)) {
-    git init -b main
-}
-
+```powershell
+cd I:\projects\PodpisOFF
 $env:GIT_AUTHOR_NAME = "bloodSUCKER"
 $env:GIT_COMMITTER_NAME = "bloodSUCKER"
 $env:GIT_AUTHOR_EMAIL = "91571876+IAMBloodSUCKER@users.noreply.github.com"
 $env:GIT_COMMITTER_EMAIL = "91571876+IAMBloodSUCKER@users.noreply.github.com"
 
-git add -A
-git diff --cached --quiet
+$gh = "$env:TEMP\gh-cli\bin\gh.exe"
+if (-not (Test-Path $gh)) { $gh = "gh" }
+
+& $gh auth status
+git -c core.fsync=none add -A
+git -c core.fsync=none diff --cached --quiet
 if ($LASTEXITCODE -ne 0) {
-    git commit -m "feat: PodpisOFF / SubOFF subscription tracker MVP"
+  git -c core.fsync=none commit -m "chore: update"
 }
 
 & $gh repo create PodpisOFF --public --source=. --remote=origin --push --description "ПодписOFF / SubOFF — subscription tracker PWA"
+git -c core.fsync=none tag v1.0.0
+git -c core.fsync=none push origin v1.0.0
+```
 
-git tag v1.0.0
-git push origin v1.0.0
-
-Write-Host "Done: https://github.com/IAMBloodSUCKER/PodpisOFF"
+Commits use GitHub noreply email — your personal email is not exposed.
