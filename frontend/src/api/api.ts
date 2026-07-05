@@ -12,6 +12,7 @@ import {
   SubscriptionPayload,
   UsernameCheckResponse,
 } from '../types/api';
+import { parseApiError } from './errors';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -46,7 +47,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `Request failed (${res.status})`);
+    throw new Error(parseApiError(text, res.status));
   }
   if (res.status === 204) {
     return undefined as T;

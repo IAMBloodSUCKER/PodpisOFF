@@ -118,6 +118,12 @@ a {
   color: var(--muted);
 }
 
+.field-hint {
+  margin: -4px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .auth-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/api';
+import { apiErrorTranslationKey } from '../api/errors';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
 import { CaptchaResponse } from '../types/api';
@@ -29,11 +30,31 @@ export function AuthPage() {
   const navigate = useNavigate();
 
   const canSubmit = useMemo(() => {
-    if (!username.trim() || !password.trim() || !captchaAnswer.trim() || !captcha) return false;
-    if (mode === 'register' && !termsAccepted) return false;
-    if (mode === 'recover' && !recoveryKey.trim()) return false;
+    const name = username.trim();
+    if (!name || !password.trim() || !captchaAnswer.trim() || !captcha) return false;
+    if (mode === 'register') {
+      if (!termsAccepted) return false;
+      if (name.length < 3 || name.length > 50) return false;
+      if (password.length < 8 || password.length > 100) return false;
+    }
+    if (mode === 'login' && (password.length < 8 || password.length > 100)) return false;
+    if (mode === 'recover') {
+      if (!recoveryKey.trim()) return false;
+      if (password.length < 8 || password.length > 100) return false;
+    }
     return true;
   }, [captcha, captchaAnswer, mode, password, recoveryKey, termsAccepted, username]);
+
+  const validationHint = useMemo(() => {
+    const name = username.trim();
+    if (mode === 'register' && name.length > 0 && (name.length < 3 || name.length > 50)) {
+      return t('errorUsernameLength');
+    }
+    if ((mode === 'register' || mode === 'login' || mode === 'recover') && password.length > 0 && password.length < 8) {
+      return t('errorPasswordLength');
+    }
+    return '';
+  }, [mode, password, t, username]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -112,7 +133,9 @@ export function AuthPage() {
       setSuccess('Password updated. Please login.');
       setMode('login');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      const raw = err instanceof Error ? err.message : 'Request failed';
+      const key = apiErrorTranslationKey(raw);
+      setError(key ? t(key) : raw);
     } finally {
       setBusy(false);
       setCaptchaAnswer('');
@@ -140,6 +163,7 @@ export function AuthPage() {
         <form onSubmit={onSubmit}>
           <label>{t('authUsername')}</label>
           <input value={username} onChange={(event) => setUsername(event.target.value)} />
+          {mode === 'register' && <p className="field-hint">{t('authUsernameHint')}</p>}
 
           {mode === 'register' && (
             <>
@@ -150,6 +174,7 @@ export function AuthPage() {
 
           <label>{t('authPassword')}</label>
           <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          {(mode === 'register' || mode === 'recover') && <p className="field-hint">{t('authPasswordHint')}</p>}
 
           {mode === 'recover' && (
             <>
@@ -170,7 +195,7 @@ export function AuthPage() {
                 <span>{t('authTerms')}</span>
               </label>
               <TermsPanel />
-              {usernameAvailable === false && <p className="error">Username is already used</p>}
+              {usernameAvailable === false && <p className="error">{t('errorUsernameTaken')}</p>}
             </>
           )}
 
@@ -205,6 +230,7 @@ export function AuthPage() {
             </button>
           )}
 
+          {validationHint && <p className="error">{validationHint}</p>}
           {error && <p className="error">{error}</p>}
           {success && <p className="success">{success}</p>}
 
