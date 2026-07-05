@@ -1,0 +1,7 @@
+# Replace with your real domain before production usage.
+podpisoff.ru, www.podpisoff.ru {
+    encode gzip zstd
+
+    # Frontend (Nginx container with static files + /api proxy)
+    reverse_proxy frontend:80
+}

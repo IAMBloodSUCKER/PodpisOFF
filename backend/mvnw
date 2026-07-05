@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+MVNW_PROJECT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+MAVEN_VERSION="3.9.9"
+MAVEN_BASE_DIR="${MVNW_PROJECT_DIR}/.mvn"
+MAVEN_DIR="${MAVEN_BASE_DIR}/apache-maven-${MAVEN_VERSION}"
+MAVEN_BIN="${MAVEN_DIR}/bin/mvn"
+MAVEN_ARCHIVE="${MAVEN_BASE_DIR}/apache-maven-${MAVEN_VERSION}-bin.tar.gz"
+
+if [ ! -x "${MAVEN_BIN}" ]; then
+  mkdir -p "${MAVEN_BASE_DIR}"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" -o "${MAVEN_ARCHIVE}"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" -O "${MAVEN_ARCHIVE}"
+  else
+    echo "Neither curl nor wget was found."
+    exit 1
+  fi
+  tar -xzf "${MAVEN_ARCHIVE}" -C "${MAVEN_BASE_DIR}"
+fi
+
+exec "${MAVEN_BIN}" "$@"
