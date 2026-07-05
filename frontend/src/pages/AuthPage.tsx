@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
 import { CaptchaResponse } from '../types/api';
 import { generateRecoveryKey } from '../utils/format';
+import { TermsPanel } from '../components/TermsPanel';
 
 type Mode = 'login' | 'register' | 'recover';
 
@@ -168,6 +169,7 @@ export function AuthPage() {
                 <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} />
                 <span>{t('authTerms')}</span>
               </label>
+              <TermsPanel />
               {usernameAvailable === false && <p className="error">Username is already used</p>}
             </>
           )}

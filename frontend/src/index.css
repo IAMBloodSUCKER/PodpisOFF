@@ -218,6 +218,67 @@ input {
   padding: 0;
 }
 
+.terms-details {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #12121c;
+  overflow: hidden;
+}
+
+.terms-details summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  color: #c7cfff;
+  list-style: none;
+  user-select: none;
+}
+
+.terms-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.terms-details summary::before {
+  content: '▸ ';
+  color: var(--accent);
+}
+
+.terms-details[open] summary::before {
+  content: '▾ ';
+}
+
+.terms-content {
+  padding: 0 12px 12px;
+  max-height: 220px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.terms-doc-title {
+  margin: 12px 0 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.terms-section {
+  margin-bottom: 10px;
+}
+
+.terms-section h3 {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.terms-section p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #b8bddf;
+}
+
 .error {
   color: #ff8b98;
   margin: 0;
