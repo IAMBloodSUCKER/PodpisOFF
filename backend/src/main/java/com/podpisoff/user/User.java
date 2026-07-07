@@ -49,6 +49,24 @@ public class User {
     @Column(name = "terms_accepted", nullable = false)
     private boolean termsAccepted;
 
+    @Column(name = "billing_reminder_days_before", nullable = false)
+    private int billingReminderDaysBefore = 3;
+
+    @Column(name = "blocked_permanently", nullable = false)
+    private boolean blockedPermanently = false;
+
+    @Column(name = "blocked_until")
+    private LocalDateTime blockedUntil;
+
+    @Column(name = "email_notifications_enabled", nullable = false)
+    private boolean emailNotificationsEnabled = false;
+
+    @Column(name = "telegram_notifications_enabled", nullable = false)
+    private boolean telegramNotificationsEnabled = false;
+
+    @Column(name = "telegram_chat_id", length = 32)
+    private String telegramChatId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -133,7 +151,62 @@ public class User {
         this.termsAccepted = termsAccepted;
     }
 
+    public int getBillingReminderDaysBefore() {
+        return billingReminderDaysBefore;
+    }
+
+    public void setBillingReminderDaysBefore(int billingReminderDaysBefore) {
+        this.billingReminderDaysBefore = billingReminderDaysBefore;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isBlockedPermanently() {
+        return blockedPermanently;
+    }
+
+    public void setBlockedPermanently(boolean blockedPermanently) {
+        this.blockedPermanently = blockedPermanently;
+    }
+
+    public LocalDateTime getBlockedUntil() {
+        return blockedUntil;
+    }
+
+    public void setBlockedUntil(LocalDateTime blockedUntil) {
+        this.blockedUntil = blockedUntil;
+    }
+
+    public boolean isEmailNotificationsEnabled() {
+        return emailNotificationsEnabled;
+    }
+
+    public void setEmailNotificationsEnabled(boolean emailNotificationsEnabled) {
+        this.emailNotificationsEnabled = emailNotificationsEnabled;
+    }
+
+    public boolean isTelegramNotificationsEnabled() {
+        return telegramNotificationsEnabled;
+    }
+
+    public void setTelegramNotificationsEnabled(boolean telegramNotificationsEnabled) {
+        this.telegramNotificationsEnabled = telegramNotificationsEnabled;
+    }
+
+    public String getTelegramChatId() {
+        return telegramChatId;
+    }
+
+    public void setTelegramChatId(String telegramChatId) {
+        this.telegramChatId = telegramChatId;
+    }
+
+    public boolean isCurrentlyBlocked() {
+        if (blockedPermanently) {
+            return true;
+        }
+        return blockedUntil != null && blockedUntil.isAfter(LocalDateTime.now());
     }
 }

@@ -14,3 +14,9 @@ app:
   jwt:
     secret: test-secret-test-secret-test-secret-test-secret-xx
     expiration-seconds: 3600
+  admin:
+    panel-key: test-admin-key
+  push:
+    public-key: BH-r4jf-rihrdfTL4HsC0D_6bHrEYejocbbkOlfgmYfPlhsVGLGhKQP8hM5lk8kbq8_iWvNw4O7injheoP_K5f4
+    private-key: XWPul2Sj58s18ZKo40fsyjuGOFym_487cvDmllbhvog
+    subject: mailto:support@podpisoff.app

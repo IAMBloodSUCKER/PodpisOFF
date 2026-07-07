@@ -11,7 +11,10 @@ public record SubscriptionResponse(
     BigDecimal amount,
     String currency,
     LocalDate nextBillingDate,
+    BillingPeriod billingPeriod,
     boolean active,
+    String note,
+    String resourceUrl,
     Instant createdAt,
     Instant updatedAt
 ) {

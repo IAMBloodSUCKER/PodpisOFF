@@ -43,6 +43,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Claims claims = jwtService.parse(token);
             String username = claims.getSubject();
             User user = userRepository.findByUsernameIgnoreCase(username).orElse(null);
+            if (user != null && user.isCurrentlyBlocked()) {
+                SecurityContextHolder.clearContext();
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"Account is blocked\"}");
+                return;
+            }
             if (user != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserPrincipal principal = new UserPrincipal(user.getId(), user.getUsername());
                 UsernamePasswordAuthenticationToken authentication =

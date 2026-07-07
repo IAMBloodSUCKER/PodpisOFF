@@ -3,6 +3,7 @@ package com.podpisoff.auth;
 import com.podpisoff.common.ApiException;
 import com.podpisoff.security.JwtService;
 import com.podpisoff.user.Plan;
+import com.podpisoff.user.PlanAccessService;
 import com.podpisoff.user.User;
 import com.podpisoff.user.UserRepository;
 import java.util.UUID;
@@ -18,15 +19,21 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final CaptchaService captchaService;
+    private final PlanAccessService planAccessService;
+    private final LoginEventService loginEventService;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       CaptchaService captchaService) {
+                       CaptchaService captchaService,
+                       PlanAccessService planAccessService,
+                       LoginEventService loginEventService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.captchaService = captchaService;
+        this.planAccessService = planAccessService;
+        this.loginEventService = loginEventService;
     }
 
     @Transactional
@@ -36,6 +43,9 @@ public class AuthService {
         }
         if (userRepository.existsByUsernameIgnoreCase(request.username())) {
             throw new ApiException(HttpStatus.CONFLICT, "Username already exists");
+        }
+        if (AuthCredentialsValidator.passwordMatchesUsername(request.username(), request.password())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Password must not match username");
         }
         captchaService.verify(request.captchaId(), request.captchaAnswer());
 
@@ -53,12 +63,17 @@ public class AuthService {
         return new RegisterResponse(toAuthResponse(user), recoveryKey);
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByUsernameIgnoreCase(request.username())
             .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
+        if (user.isCurrentlyBlocked()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Account is blocked");
+        }
+        loginEventService.recordLogin(user);
         return toAuthResponse(user);
     }
 
@@ -69,6 +84,9 @@ public class AuthService {
         captchaService.verify(request.captchaId(), request.captchaAnswer());
         if (!passwordEncoder.matches(request.recoveryKey(), user.getRecoveryKeyHash())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Recovery key is invalid");
+        }
+        if (AuthCredentialsValidator.passwordMatchesUsername(request.username(), request.newPassword())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Password must not match username");
         }
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
     }
@@ -84,11 +102,15 @@ public class AuthService {
             user.getId(),
             user.getUsername(),
             user.getEmail(),
-            user.getPlan(),
+            planAccessService.effectivePlan(user),
             user.getPlanExpiresAt(),
             user.getTimezone(),
             user.getLocale(),
             user.isTermsAccepted(),
+            user.getBillingReminderDaysBefore(),
+            user.isEmailNotificationsEnabled(),
+            user.isTelegramNotificationsEnabled(),
+            user.getTelegramChatId(),
             user.getCreatedAt()
         );
     }

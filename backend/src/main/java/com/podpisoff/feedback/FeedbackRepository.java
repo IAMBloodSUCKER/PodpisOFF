@@ -1,0 +1,17 @@
+package com.podpisoff.feedback;
+
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
+
+    List<Feedback> findAllByOrderByCreatedAtDesc();
+
+    List<Feedback> findAllByUserIdOrderByCreatedAtDesc(Long userId);
+
+    long countByAdminReplyIsNull();
+
+    long countByAdminReplyIsNotNull();
+
+    void deleteByUserId(Long userId);
+}

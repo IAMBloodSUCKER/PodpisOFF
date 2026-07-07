@@ -100,6 +100,42 @@ class AuthIntegrationTest {
     }
 
     @Test
+    void registerRejectsPasswordSameAsUsernameBeforeCaptcha() throws Exception {
+        CaptchaChallenge captcha = issueCaptcha();
+
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "username":"sameuser12",
+                      "password":"sameuser12",
+                      "timezone":"UTC",
+                      "locale":"en",
+                      "termsAccepted": true,
+                      "captchaId":"%s",
+                      "captchaAnswer":"%s"
+                    }
+                    """.formatted(captcha.id(), captcha.answer())))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Password must not match username"));
+
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "username":"sameuser12",
+                      "password":"password123",
+                      "timezone":"UTC",
+                      "locale":"en",
+                      "termsAccepted": true,
+                      "captchaId":"%s",
+                      "captchaAnswer":"%s"
+                    }
+                    """.formatted(captcha.id(), captcha.answer())))
+            .andExpect(status().isOk());
+    }
+
+    @Test
     void registerRejectsShortPasswordBeforeCaptcha() throws Exception {
         CaptchaChallenge captcha = issueCaptcha();
 

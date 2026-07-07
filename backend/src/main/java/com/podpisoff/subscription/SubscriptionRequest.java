@@ -13,6 +13,9 @@ public record SubscriptionRequest(
     @NotNull @DecimalMin("0.01") BigDecimal amount,
     @NotBlank @Size(max = 8) String currency,
     @NotNull LocalDate nextBillingDate,
-    boolean active
+    BillingPeriod billingPeriod,
+    boolean active,
+    @Size(max = 500) String note,
+    @Size(max = 500) String resourceUrl
 ) {
 }

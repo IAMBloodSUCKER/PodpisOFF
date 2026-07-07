@@ -9,6 +9,7 @@ public record ReminderRequest(
     @NotBlank @Size(max = 150) String title,
     @Size(max = 1000) String note,
     @NotNull LocalDateTime remindAt,
+    @NotNull ReminderRepeat repeat,
     boolean done
 ) {
 }

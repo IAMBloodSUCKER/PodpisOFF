@@ -1,13 +1,31 @@
 {
   "name": "ПодписOFF / SubOFF",
   "short_name": "ПодписOFF",
-  "description": "Manage subscriptions with OFF-first control.",
+  "description": "Контроль подписок без лишнего",
   "theme_color": "#0a0a0f",
   "background_color": "#0a0a0f",
   "display": "standalone",
   "start_url": "/",
   "scope": "/",
   "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "/icon-192.svg",
       "sizes": "192x192",
@@ -18,7 +36,7 @@
       "src": "/icon-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

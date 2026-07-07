@@ -21,8 +21,22 @@ public class ExportController {
     public ResponseEntity<String> subscriptionsCsv() {
         String content = exportService.exportSubscriptionsCsv();
         return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType("text/csv"))
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=subscriptions.csv")
+            .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"podpisoff-subscriptions.csv\"")
+            .body(content);
+    }
+
+    @GetMapping(
+        value = "/subscriptions.xlsx",
+        produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    public ResponseEntity<byte[]> subscriptionsExcel() {
+        byte[] content = exportService.exportSubscriptionsExcel();
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ))
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"podpisoff-subscriptions.xlsx\"")
             .body(content);
     }
 }

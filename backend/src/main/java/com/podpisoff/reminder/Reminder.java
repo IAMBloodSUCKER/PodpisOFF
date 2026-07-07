@@ -3,6 +3,8 @@ package com.podpisoff.reminder;
 import com.podpisoff.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,6 +37,10 @@ public class Reminder {
 
     @Column(name = "remind_at", nullable = false)
     private LocalDateTime remindAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "repeat_type", nullable = false, length = 16)
+    private ReminderRepeat repeatType = ReminderRepeat.ONCE;
 
     @Column(nullable = false)
     private boolean done = false;
@@ -91,6 +97,14 @@ public class Reminder {
 
     public void setRemindAt(LocalDateTime remindAt) {
         this.remindAt = remindAt;
+    }
+
+    public ReminderRepeat getRepeatType() {
+        return repeatType;
+    }
+
+    public void setRepeatType(ReminderRepeat repeatType) {
+        this.repeatType = repeatType;
     }
 
     public boolean isDone() {

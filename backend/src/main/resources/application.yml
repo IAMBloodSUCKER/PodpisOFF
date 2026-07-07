@@ -32,3 +32,19 @@ app:
   yookassa:
     shop-id: ${YOOKASSA_SHOP_ID:}
     secret-key: ${YOOKASSA_SECRET_KEY:}
+  dev:
+    admin-usernames: ${DEV_ADMIN_USERNAMES:admin123}
+  admin:
+    panel-key: ${ADMIN_PANEL_KEY:podpisoff-admin-dev-key}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:reminders@podpisoff.app}
+  telegram:
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
+    bot-username: ${TELEGRAM_BOT_USERNAME:}
+    webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}
+    webhook-public-url: ${TELEGRAM_WEBHOOK_PUBLIC_URL:}
+  push:
+    public-key: ${PUSH_VAPID_PUBLIC_KEY:BH-r4jf-rihrdfTL4HsC0D_6bHrEYejocbbkOlfgmYfPlhsVGLGhKQP8hM5lk8kbq8_iWvNw4O7injheoP_K5f4}
+    private-key: ${PUSH_VAPID_PRIVATE_KEY:XWPul2Sj58s18ZKo40fsyjuGOFym_487cvDmllbhvog}
+    subject: ${PUSH_VAPID_SUBJECT:mailto:support@podpisoff.app}

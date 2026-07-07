@@ -12,6 +12,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     long countByUserId(Long userId);
 
+    long countByActiveTrue();
+
     List<Subscription> findTop10ByUserIdAndActiveIsTrueAndNextBillingDateBetweenOrderByNextBillingDateAsc(
         Long userId, LocalDate start, LocalDate end
     );

@@ -8,4 +8,6 @@ public interface ReminderRepository extends JpaRepository<Reminder, Long> {
     List<Reminder> findAllByUserIdOrderByRemindAtAsc(Long userId);
 
     Optional<Reminder> findByIdAndUserId(Long id, Long userId);
+
+    long countByUserId(Long userId);
 }

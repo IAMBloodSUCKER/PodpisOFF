@@ -19,7 +19,7 @@ export const termsByLocale: Record<LocaleCode, { documentTitle: string; sections
       },
       {
         title: '3. Тарифы',
-        text: 'Бесплатный тариф — до 5 подписок. Pro — расширенные возможности (без лимита подписок, экспорт CSV, расширенные напоминания) за плату, когда оплата будет доступна. Условия и цены Pro могут обновляться; актуальная информация отображается в приложении.',
+        text: 'Бесплатный тариф — до 3 подписок. Pro — расширенные возможности (без лимита подписок, экспорт CSV, расширенные напоминания) за плату, когда оплата будет доступна. Условия и цены Pro могут обновляться; актуальная информация отображается в приложении.',
       },
       {
         title: '4. Данные и конфиденциальность',
@@ -27,7 +27,7 @@ export const termsByLocale: Record<LocaleCode, { documentTitle: string; sections
       },
       {
         title: '5. Напоминания',
-        text: 'Напоминания о списаниях отправляются на основе данных, которые вы указали. Мы не гарантируем доставку push- или email-уведомлений (сбои сети, почты, настроек устройства). Рекомендуем периодически проверять дашборд самостоятельно.',
+        text: 'Напоминания о списаниях строятся на данных, которые вы указали. Мы не гарантируем, что сообщение на экране или письмо дойдут вовремя (сбой сети, настройки телефона). Рекомендуем иногда заглядывать на главную страницу сами.',
       },
       {
         title: '6. Ограничение ответственности',
@@ -52,7 +52,7 @@ export const termsByLocale: Record<LocaleCode, { documentTitle: string; sections
       },
       {
         title: '3. Plans',
-        text: 'Free plan — up to 5 subscriptions. Pro — extended features (unlimited subscriptions, CSV export, advanced reminders) for a fee when billing is enabled. Pro pricing and features may change; current details are shown in the app.',
+        text: 'Free plan — up to 3 subscriptions. Pro — extended features (unlimited subscriptions, CSV export, advanced reminders) for a fee when billing is enabled. Pro pricing and features may change; current details are shown in the app.',
       },
       {
         title: '4. Data and privacy',
@@ -60,7 +60,7 @@ export const termsByLocale: Record<LocaleCode, { documentTitle: string; sections
       },
       {
         title: '5. Reminders',
-        text: 'Billing reminders are based on data you provide. We do not guarantee delivery of push or email notifications (network, mail, or device settings may fail). Check your dashboard regularly.',
+        text: 'Billing reminders are based on data you provide. We cannot guarantee that on-screen messages or emails arrive on time (network or phone settings may interfere). Check the main page from time to time.',
       },
       {
         title: '6. Limitation of liability',

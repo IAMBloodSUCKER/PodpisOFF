@@ -2,11 +2,15 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/api';
 import { resolveApiError } from '../api/errors';
+import { AuthHelpPanel } from '../components/AuthHelpPanel';
+import { AuthOAuthButtons } from '../components/AuthOAuthButtons';
+import { RecoveryKeyModal } from '../components/RecoveryKeyModal';
+import { LocaleToggle } from '../components/LocaleToggle';
+import { PasswordInput } from '../components/PasswordInput';
 import { TermsPanel } from '../components/TermsPanel';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
-import { CaptchaResponse } from '../types/api';
-import { generateRecoveryKey } from '../utils/format';
+import { CaptchaResponse, AuthResponse } from '../types/api';
 
 type Mode = 'login' | 'register' | 'recover';
 
@@ -26,8 +30,10 @@ export function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pendingRecoveryKey, setPendingRecoveryKey] = useState<string | null>(null);
+  const [pendingSession, setPendingSession] = useState<{ token: string; user: AuthResponse } | null>(null);
 
-  const { t, locale } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -48,22 +54,31 @@ export function AuthPage() {
     setError('');
     setSuccess('');
     setCaptchaAnswer('');
+    if (nextMode !== 'recover') {
+      setRecoveryKey('');
+    }
+    if (nextMode === 'recover') {
+      setPassword('');
+    }
   };
 
   const canSubmit = useMemo(() => {
     const name = username.trim();
     if (!name || !password.trim()) return false;
+    if (name.length < 3 || name.length > 50) return false;
+    if (password.length < 8 || password.length > 100) return false;
+    if (
+      (mode === 'register' || mode === 'recover')
+      && name.length > 0
+      && password.toLowerCase() === name.toLowerCase()
+    ) {
+      return false;
+    }
     if (captchaRequired && (!captchaAnswer.trim() || !captcha)) return false;
     if (mode === 'register') {
       if (!termsAccepted || usernameAvailable === false) return false;
-      if (name.length < 3 || name.length > 50) return false;
-      if (password.length < 8 || password.length > 100) return false;
     }
-    if (mode === 'login' && (password.length < 8 || password.length > 100)) return false;
-    if (mode === 'recover') {
-      if (!recoveryKey.trim()) return false;
-      if (password.length < 8 || password.length > 100) return false;
-    }
+    if (mode === 'recover' && !recoveryKey.trim()) return false;
     return true;
   }, [captcha, captchaAnswer, captchaRequired, mode, password, recoveryKey, termsAccepted, username, usernameAvailable]);
 
@@ -72,11 +87,28 @@ export function AuthPage() {
     if (mode === 'register' && name.length > 0 && (name.length < 3 || name.length > 50)) {
       return t('errorUsernameLength');
     }
-    if ((mode === 'register' || mode === 'login' || mode === 'recover') && password.length > 0 && password.length < 8) {
+    if ((mode === 'register' || mode === 'login') && password.length > 0 && password.length < 8) {
       return t('errorPasswordLength');
+    }
+    if ((mode === 'register' || mode === 'login') && password.length > 100) {
+      return t('errorPasswordLength');
+    }
+    if (mode === 'recover' && password.length > 0 && password.length < 8) {
+      return t('errorNewPasswordLength');
+    }
+    if (mode === 'recover' && password.length > 100) {
+      return t('errorNewPasswordLength');
     }
     if (mode === 'register' && usernameAvailable === false) {
       return t('errorUsernameTaken');
+    }
+    if (
+      (mode === 'register' || mode === 'recover')
+      && name.length > 0
+      && password.length > 0
+      && password.toLowerCase() === name.toLowerCase()
+    ) {
+      return t('errorPasswordSameAsUsername');
     }
     return '';
   }, [mode, password, t, username, usernameAvailable]);
@@ -129,6 +161,7 @@ export function AuthPage() {
       if (mode === 'login') {
         const user = await api.login({ username: username.trim(), password });
         login({ token: user.token, user }, rememberMe);
+        setLocale(user.locale);
         navigate('/dashboard');
         return;
       }
@@ -144,9 +177,8 @@ export function AuthPage() {
           captchaId: captcha!.captchaId,
           captchaAnswer,
         });
-        login({ token: result.auth.token, user: result.auth }, rememberMe);
-        setSuccess(`${t('authRecoveryKeySaved')}: ${result.recoveryKey}`);
-        navigate('/dashboard');
+        setPendingSession({ token: result.auth.token, user: result.auth });
+        setPendingRecoveryKey(result.recoveryKey);
         return;
       }
 
@@ -173,9 +205,23 @@ export function AuthPage() {
     }
   }
 
+  function confirmRecoveryKey() {
+    if (!pendingSession) return;
+    login(pendingSession, rememberMe);
+    setLocale(pendingSession.user.locale);
+    setPendingRecoveryKey(null);
+    setPendingSession(null);
+    navigate('/dashboard');
+  }
+
   return (
     <div className="auth-page">
-      <div className="auth-card">
+      {pendingRecoveryKey && <RecoveryKeyModal recoveryKey={pendingRecoveryKey} onConfirm={confirmRecoveryKey} />}
+      <div className="auth-topbar">
+        <LocaleToggle compact />
+      </div>
+      <div className="auth-layout">
+        <div className="auth-card">
         <h1>{t('brand')}</h1>
         <p className="muted">{t('brandSub')}</p>
         <div className="auth-tabs">
@@ -191,37 +237,42 @@ export function AuthPage() {
         </div>
 
         <form onSubmit={onSubmit}>
+          {mode === 'recover' && <p className="auth-recover-intro">{t('authRecoverIntro')}</p>}
+
           <label>{t('authUsername')}</label>
           <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" />
           {mode === 'register' && <p className="field-hint">{t('authUsernameHint')}</p>}
+          {mode === 'recover' && <p className="field-hint">{t('authRecoverUsernameHint')}</p>}
 
           {mode === 'register' && (
             <>
               <label>{t('authEmail')}</label>
               <input value={email} type="email" onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+              <p className="field-hint">{t('authEmailHint')}</p>
             </>
           )}
-
-          <label>{t('authPassword')}</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-          />
-          {(mode === 'register' || mode === 'recover') && <p className="field-hint">{t('authPasswordHint')}</p>}
 
           {mode === 'recover' && (
             <>
               <label>{t('authRecoveryKey')}</label>
-              <div className="field-row">
-                <input value={recoveryKey} onChange={(event) => setRecoveryKey(event.target.value)} />
-                <button type="button" className="ghost" onClick={() => setRecoveryKey(generateRecoveryKey(username))}>
-                  {t('authGenerateKey')}
-                </button>
-              </div>
+              <input
+                value={recoveryKey}
+                onChange={(event) => setRecoveryKey(event.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <p className="field-hint">{t('authRecoverKeyHint')}</p>
             </>
           )}
+
+          <label>{mode === 'recover' ? t('authNewPassword') : t('authPassword')}</label>
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+          />
+          {mode === 'register' && <p className="field-hint">{t('authPasswordHint')}</p>}
+          {mode === 'recover' && <p className="field-hint">{t('authNewPasswordHint')}</p>}
 
           {mode === 'register' && (
             <>
@@ -283,7 +334,11 @@ export function AuthPage() {
                   ? t('authRegisterAction')
                   : t('authRecoverAction')}
           </button>
+
+          {(mode === 'login' || mode === 'register') && <AuthOAuthButtons />}
         </form>
+        </div>
+        <AuthHelpPanel />
       </div>
     </div>
   );

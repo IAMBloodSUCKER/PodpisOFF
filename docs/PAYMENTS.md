@@ -17,7 +17,7 @@
 | Тариф | Цена | ID |
 |-------|------|-----|
 | Pro Monthly | 149 ₽/мес | `pro_monthly` |
-| Pro Yearly | 1 490 ₽/год | `pro_yearly` |
+| Pro Yearly | 1 290 ₽/год | `pro_yearly` |
 
 ---
 

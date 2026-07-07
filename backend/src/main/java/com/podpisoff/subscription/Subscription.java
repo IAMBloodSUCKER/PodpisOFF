@@ -3,6 +3,8 @@ package com.podpisoff.subscription;
 import com.podpisoff.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -43,8 +45,18 @@ public class Subscription {
     @Column(name = "next_billing_date", nullable = false)
     private LocalDate nextBillingDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "billing_period", nullable = false, length = 16)
+    private BillingPeriod billingPeriod = BillingPeriod.MONTHLY;
+
     @Column(nullable = false)
     private boolean active = true;
+
+    @Column(length = 500)
+    private String note;
+
+    @Column(name = "resource_url", length = 500)
+    private String resourceUrl;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -116,12 +128,36 @@ public class Subscription {
         this.nextBillingDate = nextBillingDate;
     }
 
+    public BillingPeriod getBillingPeriod() {
+        return billingPeriod;
+    }
+
+    public void setBillingPeriod(BillingPeriod billingPeriod) {
+        this.billingPeriod = billingPeriod;
+    }
+
     public boolean isActive() {
         return active;
     }
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public String getResourceUrl() {
+        return resourceUrl;
+    }
+
+    public void setResourceUrl(String resourceUrl) {
+        this.resourceUrl = resourceUrl;
     }
 
     public Instant getCreatedAt() {

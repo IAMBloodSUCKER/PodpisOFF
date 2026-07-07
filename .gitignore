@@ -13,10 +13,7 @@ backend/.mvn/*.tar.gz
 # Env
 .env
 *.log
-
-# OS
-.DS_Store
-Thumbs.db
+.cursor/
 
 # Build artifacts
 *.tar

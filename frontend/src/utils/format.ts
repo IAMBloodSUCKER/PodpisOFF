@@ -1,17 +1,95 @@
-export function currency(value: number, code: string): string {
+import { isSupportedCurrency } from '../i18n/currencies';
+import { LocaleCode } from '../types/api';
+
+const CURRENCY_LOCALES: Record<string, string> = {
+  RUB: 'ru-RU',
+  USD: 'en-US',
+  EUR: 'de-DE',
+  GBP: 'en-GB',
+  CNY: 'zh-CN',
+  TRY: 'tr-TR',
+  KZT: 'kk-KZ',
+  BYN: 'be-BY',
+  UAH: 'uk-UA',
+  JPY: 'ja-JP',
+  CHF: 'de-CH',
+  PLN: 'pl-PL',
+  AED: 'ar-AE',
+  THB: 'th-TH',
+  INR: 'en-IN',
+};
+
+function resolveFormatLocale(code: string, locale?: LocaleCode): string | undefined {
+  if (CURRENCY_LOCALES[code]) return CURRENCY_LOCALES[code];
+  if (locale === 'ru') return 'ru-RU';
+  if (locale === 'en') return 'en-US';
+  return undefined;
+}
+
+export function currency(value: number, code: string, locale?: LocaleCode): string {
+  const normalized = code.trim().toUpperCase();
+  const formatLocale = resolveFormatLocale(normalized, locale);
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency: code }).format(value);
+    return new Intl.NumberFormat(formatLocale, { style: 'currency', currency: normalized }).format(value);
   } catch {
-    return `${value.toFixed(2)} ${code}`;
+    return `${value.toFixed(2)} ${normalized}`;
   }
 }
 
-export function dateLabel(value: string): string {
-  return new Date(value).toLocaleDateString();
+export function formatCurrencyTotals(totals: Record<string, number>, locale?: LocaleCode): string[] {
+  return Object.entries(totals).map(([code, amount]) => currency(amount, code, locale));
 }
 
-export function generateRecoveryKey(username: string): string {
-  const seed = `${username}-${Date.now()}`.replace(/\s+/g, '').slice(0, 12);
-  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return `${seed}${random}9`;
+/** Parse YYYY-MM-DD as local calendar date (avoids UTC shift). */
+export function parseLocalDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function dateLabel(value: string): string {
+  return parseLocalDate(value).toLocaleDateString();
+}
+
+export function todayLocalIso(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function validateSubscriptionForm(input: {
+  title: string;
+  category: string;
+  amount: string;
+  currency: string;
+}): string | null {
+  const title = input.title.trim();
+  const category = input.category.trim();
+  const amount = Number(input.amount);
+  const currencyCode = input.currency.trim().toUpperCase();
+
+  if (!title || title.length > 120) return 'errorSubscriptionTitle';
+  if (!category || category.length > 80) return 'errorSubscriptionCategory';
+  if (!Number.isFinite(amount) || amount < 0.01) return 'errorSubscriptionAmount';
+  if (!currencyCode || !isSupportedCurrency(currencyCode)) return 'errorSubscriptionCurrency';
+  return null;
+}
+
+export function normalizeResourceUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withScheme);
+    if (!url.hostname) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+export function validateResourceUrlInput(value: string): string | null {
+  if (!value.trim()) return null;
+  return normalizeResourceUrl(value) ? null : 'errorInvalidResourceUrl';
 }

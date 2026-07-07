@@ -15,6 +15,10 @@ public record AuthResponse(
     String timezone,
     LocaleCode locale,
     boolean termsAccepted,
+    int billingReminderDaysBefore,
+    boolean emailNotificationsEnabled,
+    boolean telegramNotificationsEnabled,
+    String telegramChatId,
     Instant createdAt
 ) {
 }

@@ -31,6 +31,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/telegram/webhook").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/recover-password", "/api/auth/captcha").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/auth/username-check").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

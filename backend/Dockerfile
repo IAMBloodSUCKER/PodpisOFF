@@ -12,6 +12,10 @@ RUN ./mvnw -B -DskipTests clean package
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --create-home --shell /bin/bash appuser
 COPY --from=build /app/target/*.jar app.jar
 RUN chown -R appuser:appuser /app

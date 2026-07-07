@@ -8,6 +8,8 @@ public record ReminderResponse(
     String title,
     String note,
     LocalDateTime remindAt,
+    ReminderRepeat repeat,
+    LocalDateTime nextRemindAt,
     boolean done,
     Instant createdAt,
     Instant updatedAt
