@@ -56,19 +56,19 @@ public class PlanChangeService {
         NotificationType type;
         if (effectivePlan == Plan.PRO) {
             type = NotificationType.PLAN_UPGRADED;
-            title = russian ? "Тариф PRO активирован" : "PRO plan activated";
+            title = russian ? "🚀 Тариф PRO активирован" : "🚀 PRO plan activated";
             body = russian
-                ? "Вам подключён тариф PRO: безлимит подписок, любые валюты и экспорт в Excel."
-                : "Your PRO plan is active: unlimited subscriptions, any currency, and Excel export.";
+                ? "Вам подключён тариф PRO:\n• безлимит подписок\n• любые валюты\n• экспорт в Excel"
+                : "Your PRO plan is active:\n• unlimited subscriptions\n• any currency\n• Excel export";
         } else {
             type = NotificationType.PLAN_DOWNGRADED;
-            title = russian ? "Тариф изменён на Free" : "Plan changed to Free";
+            title = russian ? "📉 Тариф изменён на Free" : "📉 Plan changed to Free";
             body = russian
-                ? "Тариф PRO отключён. Доступны до 3 подписок и только рубли."
-                : "PRO plan is off. Up to 3 subscriptions and rubles only.";
+                ? "Тариф PRO отключён:\n• до 3 подписок\n• только рубли"
+                : "PRO plan is off:\n• up to 3 subscriptions\n• rubles only";
         }
         if (source == Source.ADMIN) {
-            body += russian ? " Изменение выполнено администратором." : " Changed by an administrator.";
+            body += russian ? "\n\n👤 Изменение выполнено администратором." : "\n\n👤 Changed by an administrator.";
         }
         notificationService.create(user, type, title, body, null);
     }

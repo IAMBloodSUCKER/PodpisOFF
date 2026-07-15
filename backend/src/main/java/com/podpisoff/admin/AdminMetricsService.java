@@ -140,12 +140,66 @@ public class AdminMetricsService {
         );
     }
 
-    public List<AdminUserResponse> users(String planFilter) {
+    public List<AdminUserResponse> users(AdminUserListFilters filters) {
+        String search = filters == null ? null : filters.search();
         return userRepository.findAll().stream()
-            .filter(user -> matchesPlanFilter(user, planFilter))
+            .filter(user -> matchesPlanFilter(user, filters == null ? null : filters.plan()))
+            .filter(user -> matchesSearch(user, search))
+            .filter(user -> matchesEmailStatus(user, filters == null ? null : filters.emailStatus()))
+            .filter(user -> matchesTelegramStatus(user, filters == null ? null : filters.telegramStatus()))
             .sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
             .map(this::toUserResponse)
             .toList();
+    }
+
+    public List<AdminUserResponse> users(String planFilter) {
+        return users(AdminUserListFilters.of(planFilter, null, null, null));
+    }
+
+    private boolean matchesSearch(User user, String search) {
+        if (search == null || search.isBlank()) {
+            return true;
+        }
+        String query = search.trim().toLowerCase();
+        String username = user.getUsername() == null ? "" : user.getUsername().toLowerCase();
+        String email = user.getEmail() == null ? "" : user.getEmail().toLowerCase();
+        return username.contains(query) || email.contains(query);
+    }
+
+    private boolean matchesEmailStatus(User user, String emailStatus) {
+        if (emailStatus == null || emailStatus.isBlank() || "all".equalsIgnoreCase(emailStatus)) {
+            return true;
+        }
+        boolean hasEmail = hasEmail(user);
+        return switch (emailStatus.toLowerCase()) {
+            case "set", "with" -> hasEmail;
+            case "unset", "without" -> !hasEmail;
+            case "notify_on" -> user.isEmailNotificationsEnabled() && hasEmail;
+            case "notify_off" -> !user.isEmailNotificationsEnabled() || !hasEmail;
+            default -> true;
+        };
+    }
+
+    private boolean matchesTelegramStatus(User user, String telegramStatus) {
+        if (telegramStatus == null || telegramStatus.isBlank() || "all".equalsIgnoreCase(telegramStatus)) {
+            return true;
+        }
+        boolean linked = isTelegramLinked(user);
+        return switch (telegramStatus.toLowerCase()) {
+            case "connected", "linked", "with" -> linked;
+            case "not_connected", "not_linked", "without" -> !linked;
+            case "notify_on" -> user.isTelegramNotificationsEnabled() && linked;
+            case "notify_off" -> !user.isTelegramNotificationsEnabled() || !linked;
+            default -> true;
+        };
+    }
+
+    private static boolean hasEmail(User user) {
+        return user.getEmail() != null && !user.getEmail().isBlank();
+    }
+
+    private static boolean isTelegramLinked(User user) {
+        return user.getTelegramChatId() != null && !user.getTelegramChatId().isBlank();
     }
 
     private boolean matchesPlanFilter(User user, String planFilter) {
@@ -167,6 +221,9 @@ public class AdminMetricsService {
             user.getId(),
             user.getUsername(),
             user.getEmail(),
+            user.isEmailNotificationsEnabled(),
+            isTelegramLinked(user),
+            user.isTelegramNotificationsEnabled(),
             user.getPlan().name(),
             planAccessService.effectivePlan(user).name(),
             user.getPlanExpiresAt(),

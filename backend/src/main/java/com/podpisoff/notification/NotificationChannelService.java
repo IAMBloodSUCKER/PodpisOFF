@@ -24,7 +24,7 @@ public class NotificationChannelService {
             emailNotificationService.send(user.getEmail(), title, body);
         }
         if (user.isTelegramNotificationsEnabled()) {
-            telegramNotificationService.send(user.getTelegramChatId(), message);
+            telegramNotificationService.sendPush(user.getTelegramChatId(), title, body);
         }
     }
 }

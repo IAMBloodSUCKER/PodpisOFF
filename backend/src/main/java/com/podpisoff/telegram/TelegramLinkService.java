@@ -2,15 +2,11 @@ package com.podpisoff.telegram;
 
 import com.podpisoff.common.ApiException;
 import com.podpisoff.common.AuthFacade;
-import com.podpisoff.notification.TelegramNotificationService;
 import com.podpisoff.settings.TelegramProperties;
-import com.podpisoff.user.LocaleCode;
 import com.podpisoff.user.User;
 import com.podpisoff.user.UserRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -26,18 +22,15 @@ public class TelegramLinkService {
     private final UserRepository userRepository;
     private final TelegramLinkTokenRepository linkTokenRepository;
     private final TelegramProperties telegramProperties;
-    private final TelegramNotificationService telegramNotificationService;
 
     public TelegramLinkService(AuthFacade authFacade,
                                UserRepository userRepository,
                                TelegramLinkTokenRepository linkTokenRepository,
-                               TelegramProperties telegramProperties,
-                               TelegramNotificationService telegramNotificationService) {
+                               TelegramProperties telegramProperties) {
         this.authFacade = authFacade;
         this.userRepository = userRepository;
         this.linkTokenRepository = linkTokenRepository;
         this.telegramProperties = telegramProperties;
-        this.telegramNotificationService = telegramNotificationService;
     }
 
     public boolean isBotConfigured() {
@@ -92,22 +85,23 @@ public class TelegramLinkService {
         User user = authFacade.getCurrentUser();
         user.setTelegramChatId(null);
         user.setTelegramNotificationsEnabled(false);
+        user.setTelegramMenuMessageId(null);
         userRepository.save(user);
     }
 
     @Transactional
-    public void completeLink(String token, String chatId) {
+    public Optional<User> completeLink(String token, String chatId) {
         requireBotConfigured();
         if (token == null || token.isBlank() || chatId == null || chatId.isBlank()) {
-            return;
+            return Optional.empty();
         }
 
         Instant now = Instant.now();
         TelegramLinkToken linkToken = linkTokenRepository.findByToken(token.trim())
             .orElse(null);
         if (linkToken == null || linkToken.isUsed() || linkToken.isExpired(now)) {
-            telegramNotificationService.send(chatId, invalidLinkMessage());
-            return;
+            return userRepository.findByTelegramChatId(chatId.trim())
+                .filter(TelegramLinkService::hasLinkedChat);
         }
 
         User user = linkToken.getUser();
@@ -118,17 +112,7 @@ public class TelegramLinkService {
         linkToken.setUsedAt(now);
         linkTokenRepository.save(linkToken);
 
-        boolean russian = user.getLocale() == LocaleCode.RU;
-        telegramNotificationService.sendWithActions(
-            chatId,
-            russian
-                ? "Готово! Telegram подключён к аккаунту «" + user.getUsername() + "». Будем присылать напоминания о списаниях и важные уведомления."
-                : "Done! Telegram is linked to account \"" + user.getUsername() + "\". We will send billing reminders and important alerts.",
-            List.of(List.of(Map.of(
-                "text", russian ? "Отключить уведомления" : "Disable notifications",
-                "callback_data", "disable_notifications"
-            )))
-        );
+        return Optional.of(user);
     }
 
     @Transactional
@@ -139,14 +123,8 @@ public class TelegramLinkService {
         userRepository.findByTelegramChatId(chatId.trim()).ifPresent(user -> {
             user.setTelegramChatId(null);
             user.setTelegramNotificationsEnabled(false);
+            user.setTelegramMenuMessageId(null);
             userRepository.save(user);
-            boolean russian = user.getLocale() == LocaleCode.RU;
-            telegramNotificationService.send(
-                chatId,
-                russian
-                    ? "Уведомления в Telegram отключены. Снова подключить можно в настройках на сайте."
-                    : "Telegram notifications are off. You can reconnect in site settings."
-            );
         });
     }
 
@@ -170,9 +148,5 @@ public class TelegramLinkService {
 
     private boolean hasBotUsername() {
         return telegramProperties.botUsername() != null && !telegramProperties.botUsername().isBlank();
-    }
-
-    private String invalidLinkMessage() {
-        return "Ссылка устарела или уже использована. Откройте настройки на сайте и подключите Telegram заново.";
     }
 }

@@ -4,10 +4,18 @@ import { resolveApiError } from '../api/errors';
 import { useI18n } from '../context/I18nContext';
 import { clearAdminKey, getAdminKey, setAdminKey } from '../utils/adminKey';
 import { scheduleNotificationsPolling, notifyNotificationsChanged } from '../utils/notificationEvents';
-import type { AdminFeedbackItem, AdminMetrics, AdminUserRow, DailyCount, LabelCount } from '../types/api';
+import type {
+  AdminFeedbackItem,
+  AdminMetrics,
+  AdminUserEmailFilter,
+  AdminUserPlanFilter,
+  AdminUserRow,
+  AdminUserTelegramFilter,
+  DailyCount,
+  LabelCount,
+} from '../types/api';
 
 type Tab = 'metrics' | 'users' | 'feedback' | 'notify-test';
-type UserPlanFilter = 'all' | 'pro' | 'free';
 
 export function AdminPage() {
   const { t } = useI18n();
@@ -25,7 +33,11 @@ export function AdminPage() {
   const [notifyTitle, setNotifyTitle] = useState('');
   const [notifyBody, setNotifyBody] = useState('');
   const [userActionStatus, setUserActionStatus] = useState('');
-  const [userPlanFilter, setUserPlanFilter] = useState<UserPlanFilter>('all');
+  const [userPlanFilter, setUserPlanFilter] = useState<AdminUserPlanFilter>('all');
+  const [userEmailFilter, setUserEmailFilter] = useState<AdminUserEmailFilter>('all');
+  const [userTelegramFilter, setUserTelegramFilter] = useState<AdminUserTelegramFilter>('all');
+  const [userSearchInput, setUserSearchInput] = useState('');
+  const [userSearch, setUserSearch] = useState('');
 
   async function unlock(event: FormEvent) {
     event.preventDefault();
@@ -48,7 +60,12 @@ export function AdminPage() {
     try {
       setMetrics(await adminApi.metrics());
       if (tab === 'users') {
-        setUsers(await adminApi.users(userPlanFilter));
+        setUsers(await adminApi.users({
+          plan: userPlanFilter,
+          search: userSearch || undefined,
+          emailStatus: userEmailFilter,
+          telegramStatus: userTelegramFilter,
+        }));
       } else if (tab === 'feedback') {
         setFeedback(await adminApi.feedback());
       }
@@ -62,10 +79,15 @@ export function AdminPage() {
   }
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setUserSearch(userSearchInput.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [userSearchInput]);
+
+  useEffect(() => {
     if (unlocked) {
       void load();
     }
-  }, [unlocked, tab, userPlanFilter]);
+  }, [unlocked, tab, userPlanFilter, userEmailFilter, userTelegramFilter, userSearch]);
 
   async function sendTestNotification(delaySeconds: 0 | 5 | 10) {
     setError('');
@@ -197,6 +219,14 @@ export function AdminPage() {
       });
     }
     return t('adminUserStatusBlockedPermanent');
+  }
+
+  function channelBadge(active: boolean, activeLabel: string, inactiveLabel: string) {
+    return (
+      <span className={`badge ${active ? 'active' : 'off'}`}>
+        {active ? activeLabel : inactiveLabel}
+      </span>
+    );
   }
 
   const pendingFeedback = metrics?.pendingFeedback ?? 0;
@@ -380,21 +410,70 @@ export function AdminPage() {
           {tab === 'users' && (
         <article className="card admin-table-card stack">
           {userActionStatus && <p className="success">{userActionStatus}</p>}
-          <div className="filters admin-user-plan-filters">
-            <button type="button" className={userPlanFilter === 'all' ? 'active' : 'ghost'} onClick={() => setUserPlanFilter('all')}>
-              {t('adminUserFilterAll')}
-            </button>
-            <button type="button" className={userPlanFilter === 'pro' ? 'active' : 'ghost'} onClick={() => setUserPlanFilter('pro')}>
-              {t('adminUserFilterPro')}
-            </button>
-            <button type="button" className={userPlanFilter === 'free' ? 'active' : 'ghost'} onClick={() => setUserPlanFilter('free')}>
-              {t('adminUserFilterFree')}
-            </button>
+          <div className="admin-users-toolbar">
+            <label className="admin-users-search">
+              <span className="muted">{t('adminUserSearchLabel')}</span>
+              <input
+                type="search"
+                value={userSearchInput}
+                onChange={(event) => setUserSearchInput(event.target.value)}
+                placeholder={t('adminUserSearchPlaceholder')}
+              />
+            </label>
+            <p className="muted admin-users-count">
+              {t('adminUserCount', { count: String(users.length) })}
+            </p>
+          </div>
+          <div className="admin-users-filters">
+            <div className="filters admin-user-plan-filters">
+              <span className="admin-filter-label">{t('adminUserFilterPlan')}</span>
+              <button type="button" className={userPlanFilter === 'all' ? 'active' : 'ghost'} onClick={() => setUserPlanFilter('all')}>
+                {t('adminUserFilterAll')}
+              </button>
+              <button type="button" className={userPlanFilter === 'pro' ? 'active' : 'ghost'} onClick={() => setUserPlanFilter('pro')}>
+                {t('adminUserFilterPro')}
+              </button>
+              <button type="button" className={userPlanFilter === 'free' ? 'active' : 'ghost'} onClick={() => setUserPlanFilter('free')}>
+                {t('adminUserFilterFree')}
+              </button>
+            </div>
+            <div className="filters admin-user-plan-filters">
+              <span className="admin-filter-label">{t('adminUserFilterEmail')}</span>
+              <button type="button" className={userEmailFilter === 'all' ? 'active' : 'ghost'} onClick={() => setUserEmailFilter('all')}>
+                {t('adminUserFilterAll')}
+              </button>
+              <button type="button" className={userEmailFilter === 'set' ? 'active' : 'ghost'} onClick={() => setUserEmailFilter('set')}>
+                {t('adminUserFilterEmailSet')}
+              </button>
+              <button type="button" className={userEmailFilter === 'unset' ? 'active' : 'ghost'} onClick={() => setUserEmailFilter('unset')}>
+                {t('adminUserFilterEmailUnset')}
+              </button>
+              <button type="button" className={userEmailFilter === 'notify_on' ? 'active' : 'ghost'} onClick={() => setUserEmailFilter('notify_on')}>
+                {t('adminUserFilterEmailNotifyOn')}
+              </button>
+            </div>
+            <div className="filters admin-user-plan-filters">
+              <span className="admin-filter-label">{t('adminUserFilterTelegram')}</span>
+              <button type="button" className={userTelegramFilter === 'all' ? 'active' : 'ghost'} onClick={() => setUserTelegramFilter('all')}>
+                {t('adminUserFilterAll')}
+              </button>
+              <button type="button" className={userTelegramFilter === 'connected' ? 'active' : 'ghost'} onClick={() => setUserTelegramFilter('connected')}>
+                {t('adminUserFilterTelegramConnected')}
+              </button>
+              <button type="button" className={userTelegramFilter === 'not_connected' ? 'active' : 'ghost'} onClick={() => setUserTelegramFilter('not_connected')}>
+                {t('adminUserFilterTelegramNotConnected')}
+              </button>
+              <button type="button" className={userTelegramFilter === 'notify_on' ? 'active' : 'ghost'} onClick={() => setUserTelegramFilter('notify_on')}>
+                {t('adminUserFilterTelegramNotifyOn')}
+              </button>
+            </div>
           </div>
           <table className="admin-table">
             <thead>
               <tr>
                 <th>{t('adminColUser')}</th>
+                <th>{t('adminColEmail')}</th>
+                <th>{t('adminColTelegram')}</th>
                 <th>{t('adminColPlan')}</th>
                 <th>{t('adminColStatus')}</th>
                 <th>{t('adminColSubs')}</th>
@@ -408,6 +487,36 @@ export function AdminPage() {
                 <Fragment key={user.id}>
                   <tr className={user.currentlyBlocked ? 'admin-user-blocked' : undefined}>
                     <td>{user.username}</td>
+                    <td>
+                      <div>{user.email?.trim() || t('adminChannelNotSet')}</div>
+                      <div className="admin-channel-badges">
+                        {channelBadge(
+                          Boolean(user.email?.trim()),
+                          t('adminChannelEmailSet'),
+                          t('adminChannelEmailMissing')
+                        )}
+                        {user.email?.trim() && channelBadge(
+                          user.emailNotificationsEnabled,
+                          t('adminChannelNotifyOn'),
+                          t('adminChannelNotifyOff')
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div>{user.telegramLinked ? t('adminChannelTelegramLinked') : t('adminChannelNotSet')}</div>
+                      <div className="admin-channel-badges">
+                        {channelBadge(
+                          user.telegramLinked,
+                          t('adminChannelTelegramLinked'),
+                          t('adminChannelTelegramMissing')
+                        )}
+                        {user.telegramLinked && channelBadge(
+                          user.telegramNotificationsEnabled,
+                          t('adminChannelNotifyOn'),
+                          t('adminChannelNotifyOff')
+                        )}
+                      </div>
+                    </td>
                     <td>
                       <span className={`badge ${user.effectivePlan === 'PRO' ? 'active' : 'off'}`}>
                         {user.effectivePlan}
@@ -512,6 +621,11 @@ export function AdminPage() {
                   )}
                 </Fragment>
               ))}
+              {users.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="muted admin-users-empty">{t('adminUsersEmpty')}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </article>

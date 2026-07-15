@@ -21,18 +21,25 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final AuthFacade authFacade;
     private final PlanAccessService planAccessService;
+    private final SubscriptionNotificationService subscriptionNotificationService;
 
     public SubscriptionService(SubscriptionRepository subscriptionRepository,
                                AuthFacade authFacade,
-                               PlanAccessService planAccessService) {
+                               PlanAccessService planAccessService,
+                               SubscriptionNotificationService subscriptionNotificationService) {
         this.subscriptionRepository = subscriptionRepository;
         this.authFacade = authFacade;
         this.planAccessService = planAccessService;
+        this.subscriptionNotificationService = subscriptionNotificationService;
     }
 
     @Transactional
     public List<SubscriptionResponse> list() {
-        User user = authFacade.getCurrentUser();
+        return listForUser(authFacade.getCurrentUser());
+    }
+
+    @Transactional
+    public List<SubscriptionResponse> listForUser(User user) {
         return rolloverAll(user).stream()
             .map(this::toResponse)
             .toList();
@@ -71,7 +78,9 @@ public class SubscriptionService {
         Subscription subscription = new Subscription();
         applyRequest(subscription, request);
         subscription.setUser(user);
-        return toResponse(subscriptionRepository.save(subscription));
+        SubscriptionResponse response = toResponse(subscriptionRepository.save(subscription));
+        subscriptionNotificationService.notifyCreated(user, response);
+        return response;
     }
 
     @Transactional
@@ -81,7 +90,9 @@ public class SubscriptionService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Subscription not found"));
         planAccessService.validateSubscriptionCurrency(user, request.currency(), subscription.getCurrency());
         applyRequest(subscription, request);
-        return toResponse(subscription);
+        SubscriptionResponse response = toResponse(subscriptionRepository.save(subscription));
+        subscriptionNotificationService.notifyUpdated(user, response);
+        return response;
     }
 
     @Transactional
@@ -89,7 +100,9 @@ public class SubscriptionService {
         User user = authFacade.getCurrentUser();
         Subscription subscription = subscriptionRepository.findByIdAndUserId(id, user.getId())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Subscription not found"));
+        SubscriptionResponse response = toResponse(subscription);
         subscriptionRepository.delete(subscription);
+        subscriptionNotificationService.notifyDeleted(user, response);
     }
 
     private void applyRequest(Subscription subscription, SubscriptionRequest request) {

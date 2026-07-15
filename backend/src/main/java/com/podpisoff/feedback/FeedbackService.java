@@ -74,8 +74,8 @@ public class FeedbackService {
         boolean russian = user.getLocale() == LocaleCode.RU;
         boolean support = feedback.getKind() == FeedbackKind.SUPPORT;
         String title = support
-            ? (russian ? "Ответ поддержки" : "Support reply")
-            : (russian ? "Ответ на ваш отзыв" : "Reply to your feedback");
+            ? (russian ? "💬 Ответ поддержки" : "💬 Support reply")
+            : (russian ? "📝 Ответ на ваш отзыв" : "📝 Reply to your feedback");
         notificationService.create(
             user,
             NotificationType.FEEDBACK_REPLY,

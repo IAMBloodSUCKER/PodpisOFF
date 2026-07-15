@@ -1,7 +1,6 @@
 package com.podpisoff.telegram;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.podpisoff.settings.TelegramProperties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -11,7 +10,6 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 @Service
 public class TelegramPollingService implements ApplicationRunner {
@@ -20,18 +18,16 @@ public class TelegramPollingService implements ApplicationRunner {
 
     private final TelegramProperties telegramProperties;
     private final TelegramUpdateService telegramUpdateService;
-    private final ObjectMapper objectMapper;
-    private final RestClient restClient;
+    private final TelegramBotApiClient telegramBotApiClient;
     private final AtomicLong offset = new AtomicLong(0);
     private final AtomicBoolean webhookCleared = new AtomicBoolean(false);
 
     public TelegramPollingService(TelegramProperties telegramProperties,
                                   TelegramUpdateService telegramUpdateService,
-                                  ObjectMapper objectMapper) {
+                                  TelegramBotApiClient telegramBotApiClient) {
         this.telegramProperties = telegramProperties;
         this.telegramUpdateService = telegramUpdateService;
-        this.objectMapper = objectMapper;
-        this.restClient = RestClient.create();
+        this.telegramBotApiClient = telegramBotApiClient;
     }
 
     @Override
@@ -50,14 +46,11 @@ public class TelegramPollingService implements ApplicationRunner {
         if (!webhookCleared.get()) {
             clearWebhook();
         }
-        String url = "https://api.telegram.org/bot" + telegramProperties.botToken()
-            + "/getUpdates?timeout=0&offset=" + offset.get();
         try {
-            String body = restClient.get().uri(url).retrieve().body(String.class);
-            if (body == null || body.isBlank()) {
+            JsonNode root = telegramBotApiClient.getUpdates(offset.get());
+            if (root == null) {
                 return;
             }
-            JsonNode root = objectMapper.readTree(body);
             JsonNode results = root.get("result");
             if (results == null || !results.isArray()) {
                 return;
@@ -70,7 +63,7 @@ public class TelegramPollingService implements ApplicationRunner {
                 telegramUpdateService.handle(update);
             }
         } catch (Exception ex) {
-            log.debug("Telegram polling failed", ex);
+            log.debug("Telegram polling failed: {}", safeError(ex));
         }
     }
 
@@ -84,11 +77,14 @@ public class TelegramPollingService implements ApplicationRunner {
 
     private void clearWebhook() {
         try {
-            String url = "https://api.telegram.org/bot" + telegramProperties.botToken() + "/deleteWebhook";
-            restClient.post().uri(url).retrieve().toBodilessEntity();
+            telegramBotApiClient.deleteWebhook();
             webhookCleared.set(true);
         } catch (Exception ex) {
-            log.warn("Failed to clear Telegram webhook for polling mode", ex);
+            log.warn("Failed to clear Telegram webhook for polling mode: {}", safeError(ex));
         }
+    }
+
+    private String safeError(Throwable error) {
+        return TelegramSecrets.safeErrorMessage(error, telegramBotApiClient.tokenForLogging());
     }
 }

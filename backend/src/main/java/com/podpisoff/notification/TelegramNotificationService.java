@@ -1,72 +1,180 @@
 package com.podpisoff.notification;
 
+
+
 import com.podpisoff.settings.TelegramProperties;
-import java.util.LinkedHashMap;
+
+import com.podpisoff.telegram.TelegramBotApiClient;
+
+import com.podpisoff.telegram.TelegramMenuRefreshScheduler;
+
+import com.podpisoff.telegram.TelegramPushFormatter;
+
+import com.podpisoff.telegram.TelegramSecrets;
+
 import java.util.List;
+
 import java.util.Map;
+
 import org.slf4j.Logger;
+
 import org.slf4j.LoggerFactory;
+
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
+
+
 
 @Service
+
 public class TelegramNotificationService {
+
+
 
     private static final Logger log = LoggerFactory.getLogger(TelegramNotificationService.class);
 
-    private final TelegramProperties telegramProperties;
-    private final RestClient restClient;
 
-    public TelegramNotificationService(TelegramProperties telegramProperties) {
+
+    private final TelegramProperties telegramProperties;
+
+    private final TelegramBotApiClient telegramBotApiClient;
+
+    private final TelegramMenuRefreshScheduler menuRefreshScheduler;
+
+
+
+    public TelegramNotificationService(TelegramProperties telegramProperties,
+
+                                       TelegramBotApiClient telegramBotApiClient,
+
+                                       TelegramMenuRefreshScheduler menuRefreshScheduler) {
+
         this.telegramProperties = telegramProperties;
-        this.restClient = RestClient.create();
+
+        this.telegramBotApiClient = telegramBotApiClient;
+
+        this.menuRefreshScheduler = menuRefreshScheduler;
+
     }
+
+
 
     public boolean isConfigured() {
+
         return telegramProperties.isConfigured();
+
     }
 
-    public void send(String chatId, String text) {
-        send(chatId, text, null);
+
+
+    public void sendPush(String chatId, String title, String body) {
+
+        if (!isConfigured() || chatId == null || chatId.isBlank() || title == null || title.isBlank()) {
+
+            return;
+
+        }
+
+        try {
+
+            String message = TelegramPushFormatter.format(title, body);
+
+            telegramBotApiClient.sendMessage(chatId, message, null);
+
+            menuRefreshScheduler.scheduleRefresh(chatId);
+
+        } catch (Exception ex) {
+
+            log.warn(
+
+                "Failed to send Telegram notification to {}: {}",
+
+                chatId,
+
+                safeError(ex)
+
+            );
+
+        }
+
     }
+
+
 
     public void sendWithActions(String chatId, String text, List<List<Map<String, String>>> inlineKeyboard) {
+
         Map<String, Object> replyMarkup = Map.of("inline_keyboard", inlineKeyboard);
-        send(chatId, text, replyMarkup);
+
+        sendFormatted(chatId, text, replyMarkup);
+
     }
+
+
 
     public void answerCallback(String callbackQueryId, String text) {
+
         if (!isConfigured() || callbackQueryId == null || callbackQueryId.isBlank()) {
+
             return;
+
         }
-        String url = "https://api.telegram.org/bot" + telegramProperties.botToken() + "/answerCallbackQuery";
+
         try {
-            LinkedHashMap<String, Object> body = new LinkedHashMap<>();
-            body.put("callback_query_id", callbackQueryId);
-            if (text != null && !text.isBlank()) {
-                body.put("text", text);
-            }
-            restClient.post().uri(url).body(body).retrieve().toBodilessEntity();
+
+            telegramBotApiClient.answerCallbackQuery(callbackQueryId, text);
+
         } catch (Exception ex) {
-            log.warn("Failed to answer Telegram callback {}", callbackQueryId, ex);
+
+            log.warn(
+
+                "Failed to answer Telegram callback {}: {}",
+
+                callbackQueryId,
+
+                safeError(ex)
+
+            );
+
         }
+
     }
 
-    private void send(String chatId, String text, Map<String, Object> replyMarkup) {
+
+
+    private void sendFormatted(String chatId, String text, Map<String, Object> replyMarkup) {
+
         if (!isConfigured() || chatId == null || chatId.isBlank() || text == null || text.isBlank()) {
+
             return;
+
         }
-        String url = "https://api.telegram.org/bot" + telegramProperties.botToken() + "/sendMessage";
+
         try {
-            LinkedHashMap<String, Object> body = new LinkedHashMap<>();
-            body.put("chat_id", chatId.trim());
-            body.put("text", text);
-            if (replyMarkup != null) {
-                body.put("reply_markup", replyMarkup);
-            }
-            restClient.post().uri(url).body(body).retrieve().toBodilessEntity();
+
+            telegramBotApiClient.sendMessage(chatId, text, replyMarkup);
+
         } catch (Exception ex) {
-            log.warn("Failed to send Telegram notification to {}", chatId, ex);
+
+            log.warn(
+
+                "Failed to send Telegram notification to {}: {}",
+
+                chatId,
+
+                safeError(ex)
+
+            );
+
         }
+
     }
+
+
+
+    private String safeError(Throwable error) {
+
+        return TelegramSecrets.safeErrorMessage(error, telegramBotApiClient.tokenForLogging());
+
+    }
+
 }
+

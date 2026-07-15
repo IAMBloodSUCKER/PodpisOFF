@@ -58,22 +58,52 @@ export function todayLocalIso(): string {
   return `${y}-${m}-${d}`;
 }
 
+export type SubscriptionFormField = 'title' | 'category' | 'amount' | 'currency' | 'note' | 'resourceUrl';
+
+export function validateSubscriptionFormFields(input: {
+  title: string;
+  category: string;
+  amount: string;
+  currency: string;
+  note: string;
+  resourceUrl: string;
+}): Partial<Record<SubscriptionFormField, string>> {
+  const errors: Partial<Record<SubscriptionFormField, string>> = {};
+
+  const title = input.title.trim();
+  if (!title || title.length > 120) errors.title = 'errorSubscriptionTitle';
+
+  const category = input.category.trim();
+  if (!category || category.length > 80) errors.category = 'errorSubscriptionCategory';
+
+  const amount = Number(input.amount);
+  if (!Number.isFinite(amount) || amount < 0.01) errors.amount = 'errorSubscriptionAmount';
+
+  const currencyCode = input.currency.trim().toUpperCase();
+  if (!currencyCode || !isSupportedCurrency(currencyCode)) errors.currency = 'errorSubscriptionCurrency';
+
+  const note = input.note.trim();
+  if (note.length > 500) errors.note = 'errorSubscriptionNote';
+
+  const resourceUrl = input.resourceUrl.trim();
+  if (resourceUrl.length > 500) {
+    errors.resourceUrl = 'errorSubscriptionResourceUrl';
+  } else if (resourceUrl && !normalizeResourceUrl(resourceUrl)) {
+    errors.resourceUrl = 'errorInvalidResourceUrl';
+  }
+
+  return errors;
+}
+
 export function validateSubscriptionForm(input: {
   title: string;
   category: string;
   amount: string;
   currency: string;
 }): string | null {
-  const title = input.title.trim();
-  const category = input.category.trim();
-  const amount = Number(input.amount);
-  const currencyCode = input.currency.trim().toUpperCase();
-
-  if (!title || title.length > 120) return 'errorSubscriptionTitle';
-  if (!category || category.length > 80) return 'errorSubscriptionCategory';
-  if (!Number.isFinite(amount) || amount < 0.01) return 'errorSubscriptionAmount';
-  if (!currencyCode || !isSupportedCurrency(currencyCode)) return 'errorSubscriptionCurrency';
-  return null;
+  const errors = validateSubscriptionFormFields({ ...input, note: '', resourceUrl: '' });
+  const first = Object.values(errors)[0];
+  return first ?? null;
 }
 
 export function normalizeResourceUrl(value: string): string | null {

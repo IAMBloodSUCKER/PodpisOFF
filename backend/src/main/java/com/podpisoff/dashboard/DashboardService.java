@@ -43,7 +43,10 @@ public class DashboardService {
     }
 
     public DashboardSummaryResponse summary(Integer year, Integer month) {
-        User user = authFacade.getCurrentUser();
+        return summaryForUser(authFacade.getCurrentUser(), year, month);
+    }
+
+    public DashboardSummaryResponse summaryForUser(User user, Integer year, Integer month) {
         LocalDate now = LocalDate.now();
         int targetYear = year == null ? now.getYear() : year;
         int targetMonth = month == null ? now.getMonthValue() : month;

@@ -46,7 +46,7 @@ public class TelegramWebhookController {
             JsonNode update = objectMapper.readTree(body);
             telegramUpdateService.handle(update);
         } catch (Exception ex) {
-            log.warn("Failed to process Telegram update", ex);
+            log.warn("Failed to process Telegram update: {}", TelegramSecrets.safeErrorMessage(ex, null));
         }
         return ResponseEntity.ok().build();
     }

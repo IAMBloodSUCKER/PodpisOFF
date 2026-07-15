@@ -67,6 +67,9 @@ public class User {
     @Column(name = "telegram_chat_id", length = 32)
     private String telegramChatId;
 
+    @Column(name = "telegram_menu_message_id")
+    private Long telegramMenuMessageId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -201,6 +204,14 @@ public class User {
 
     public void setTelegramChatId(String telegramChatId) {
         this.telegramChatId = telegramChatId;
+    }
+
+    public Long getTelegramMenuMessageId() {
+        return telegramMenuMessageId;
+    }
+
+    public void setTelegramMenuMessageId(Long telegramMenuMessageId) {
+        this.telegramMenuMessageId = telegramMenuMessageId;
     }
 
     public boolean isCurrentlyBlocked() {

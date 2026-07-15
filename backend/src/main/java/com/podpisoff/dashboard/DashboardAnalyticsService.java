@@ -46,6 +46,10 @@ public class DashboardAnalyticsService {
 
     public DashboardAnalyticsResponse analytics(Integer months) {
         User user = authFacade.getCurrentUser();
+        return analyticsForUser(user, months);
+    }
+
+    public DashboardAnalyticsResponse analyticsForUser(User user, Integer months) {
         if (planAccessService.effectivePlan(user) != Plan.PRO) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Analytics available only for PRO plan");
         }

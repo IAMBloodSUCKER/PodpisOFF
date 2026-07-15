@@ -3,29 +3,30 @@ package com.podpisoff.telegram;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.podpisoff.notification.TelegramNotificationService;
 import com.podpisoff.settings.TelegramProperties;
+import com.podpisoff.user.User;
 import com.podpisoff.user.UserRepository;
-import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TelegramUpdateService {
 
-    private static final String CALLBACK_DISABLE = "disable_notifications";
-
     private final TelegramLinkService telegramLinkService;
     private final TelegramNotificationService telegramNotificationService;
     private final TelegramProperties telegramProperties;
     private final UserRepository userRepository;
+    private final TelegramBotMenuService telegramBotMenuService;
 
     public TelegramUpdateService(TelegramLinkService telegramLinkService,
                                  TelegramNotificationService telegramNotificationService,
                                  TelegramProperties telegramProperties,
-                                 UserRepository userRepository) {
+                                 UserRepository userRepository,
+                                 TelegramBotMenuService telegramBotMenuService) {
         this.telegramLinkService = telegramLinkService;
         this.telegramNotificationService = telegramNotificationService;
         this.telegramProperties = telegramProperties;
         this.userRepository = userRepository;
+        this.telegramBotMenuService = telegramBotMenuService;
     }
 
     public void handle(JsonNode update) {
@@ -57,24 +58,35 @@ public class TelegramUpdateService {
             return;
         }
 
-        if (text.equals("/stop") || text.equalsIgnoreCase("отключить уведомления")) {
-            disableNotifications(chatId);
-            return;
-        }
+        long incomingMessageId = message.path("message_id").asLong(0);
 
         if (text.startsWith("/start")) {
-            String token = extractStartToken(text);
-            if (token != null) {
-                telegramLinkService.completeLink(token, chatId);
-            } else {
-                sendWelcome(chatId);
-            }
+            handleStart(chatId, text);
+            deleteIncomingMessage(chatId, incomingMessageId);
             return;
         }
 
-        if (text.equals("/help") || text.equals("/status")) {
-            sendHelp(chatId);
+        if (isStopCommand(text)) {
+            disableFromChat(chatId);
+            deleteIncomingMessage(chatId, incomingMessageId);
+            return;
         }
+
+        deleteIncomingMessage(chatId, incomingMessageId);
+    }
+
+    private void handleStart(String chatId, String text) {
+        String token = extractStartToken(text);
+        if (token != null) {
+            Optional<User> linked = telegramLinkService.completeLink(token, chatId);
+            if (linked.isPresent()) {
+                telegramBotMenuService.openLinkedMenu(linked.get(), chatId, TelegramMenuAction.HOME);
+                return;
+            }
+            telegramBotMenuService.showInvalidLink(chatId);
+            return;
+        }
+        telegramBotMenuService.openMenuForChat(chatId);
     }
 
     private void handleCallback(JsonNode callback) {
@@ -89,27 +101,47 @@ public class TelegramUpdateService {
             return;
         }
 
-        if (CALLBACK_DISABLE.equals(data)) {
-            disableNotifications(chatId);
-            telegramNotificationService.answerCallback(callbackId, "Уведомления отключены");
+        TelegramMenuAction action = TelegramMenuAction.fromCallback(data);
+        if (action == null) {
+            return;
         }
+
+        long messageId = message.path("message_id").asLong(0);
+        if (messageId <= 0) {
+            return;
+        }
+        telegramBotMenuService.handleMenuAction(chatId, messageId, action, callbackId);
     }
 
-    private void disableNotifications(String chatId) {
-        if (!isLinked(chatId)) {
-            telegramNotificationService.send(
-                chatId,
-                "Аккаунт не подключён. Подключите Telegram в настройках на сайте."
-            );
+    private void disableFromChat(String chatId) {
+        Optional<User> linkedUser = userRepository.findByTelegramChatId(chatId.trim())
+            .filter(user -> user.getTelegramChatId() != null && user.isTelegramNotificationsEnabled());
+        if (linkedUser.isEmpty()) {
+            telegramBotMenuService.showUnlinkedPublic(chatId);
+            return;
+        }
+        Long messageId = linkedUser.get().getTelegramMenuMessageId();
+        if (messageId != null && messageId > 0) {
+            telegramBotMenuService.handleMenuAction(chatId, messageId, TelegramMenuAction.DISABLE, null);
             return;
         }
         telegramLinkService.handleStop(chatId);
+        telegramBotMenuService.showUnlinkedPublic(chatId);
     }
 
-    private boolean isLinked(String chatId) {
-        return userRepository.findByTelegramChatId(chatId.trim())
-            .map(user -> user.getTelegramChatId() != null && user.isTelegramNotificationsEnabled())
-            .orElse(false);
+    private void deleteIncomingMessage(String chatId, long messageId) {
+        if (messageId > 0) {
+            telegramBotMenuService.deleteChatMessage(chatId, messageId);
+        }
+    }
+
+    private static boolean isStopCommand(String text) {
+        String command = text.trim().split("\\s+", 2)[0].toLowerCase();
+        int at = command.indexOf('@');
+        if (at > 0) {
+            command = command.substring(0, at);
+        }
+        return "/stop".equals(command);
     }
 
     private static String extractStartToken(String text) {
@@ -119,46 +151,5 @@ public class TelegramUpdateService {
         }
         String token = parts[1].trim();
         return token.isBlank() ? null : token;
-    }
-
-    private void sendWelcome(String chatId) {
-        String username = telegramProperties.botUsername();
-        telegramNotificationService.send(
-            chatId,
-            "Привет! Я бот ПодписOFF.\n\n"
-                + "Чтобы подключить уведомления, откройте Настройки на сайте, примите условия и нажмите «Подключить Telegram».\n"
-                + "Мы пришлём ссылку с QR-кодом — откройте её и нажмите Start.\n\n"
-                + (username != null && !username.isBlank()
-                ? "Ссылка из настроек: t.me/" + username + "\n\n"
-                : "")
-                + "/help — справка"
-        );
-    }
-
-    private void sendHelp(String chatId) {
-        if (isLinked(chatId)) {
-            sendLinkedMessage(chatId);
-            return;
-        }
-        telegramNotificationService.send(
-            chatId,
-            "ПодписOFF присылает:\n"
-                + "• напоминания о списаниях по подпискам;\n"
-                + "• ответы поддержки и сообщения администратора;\n"
-                + "• уведомления о тарифе.\n\n"
-                + "Подключение только через настройки аккаунта на сайте."
-        );
-    }
-
-    private void sendLinkedMessage(String chatId) {
-        telegramNotificationService.sendWithActions(
-            chatId,
-            "Уведомления включены.\n\n"
-                + "Чтобы отключить — нажмите кнопку ниже, команду /stop или «Отключить» в настройках на сайте.",
-            List.of(List.of(Map.of(
-                "text", "Отключить уведомления",
-                "callback_data", CALLBACK_DISABLE
-            )))
-        );
     }
 }

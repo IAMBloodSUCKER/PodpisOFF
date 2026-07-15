@@ -22,7 +22,7 @@ import {
   SubscriptionMonthChargePayload,
   UsernameCheckResponse,
 } from '../types/api';
-import { parseApiError, isRetryableStatus } from './errors';
+import { ApiClientError, isRetryableStatus, parseApiError, parseApiErrorBody } from './errors';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const MAX_RETRIES = 3;
@@ -78,11 +78,13 @@ async function request<T>(path: string, init?: RequestInit, attempt = 0): Promis
 
   if (res.status === 401) {
     unauthorizedHandler?.();
-    throw new Error(parseApiError(text, res.status));
+    const { message } = parseApiErrorBody(text, res.status);
+    throw new ApiClientError(message, res.status);
   }
 
   if (!res.ok) {
-    throw new Error(parseApiError(text, res.status));
+    const { message, fieldErrors } = parseApiErrorBody(text, res.status);
+    throw new ApiClientError(message, res.status, fieldErrors);
   }
 
   if (!text.trim()) {

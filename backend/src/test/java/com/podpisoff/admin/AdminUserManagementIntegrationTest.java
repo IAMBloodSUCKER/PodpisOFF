@@ -2,6 +2,7 @@ package com.podpisoff.admin;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -120,6 +121,42 @@ class AdminUserManagementIntegrationTest {
                 .header("Authorization", bearer(targetToken)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].type").value("PLAN_DOWNGRADED"));
+    }
+
+    @Test
+    void usersCanBeFilteredBySearchAndChannelStatus() throws Exception {
+        String targetUsername = findUsername(targetUserId);
+        String targetToken = loginUser(targetUsername);
+
+        mockMvc.perform(patch("/api/settings")
+                .header("Authorization", bearer(targetToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"target-filter@test.local\"}"))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/admin/users")
+                .header("Authorization", bearer(adminToken))
+                .header("X-Admin-Key", ADMIN_KEY)
+                .param("emailStatus", "set"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id==" + targetUserId + ")]").exists());
+
+        mockMvc.perform(get("/api/admin/users")
+                .header("Authorization", bearer(adminToken))
+                .header("X-Admin-Key", ADMIN_KEY)
+                .param("search", "target-filter@test.local"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].email").value("target-filter@test.local"))
+            .andExpect(jsonPath("$[0].emailNotificationsEnabled").exists())
+            .andExpect(jsonPath("$[0].telegramLinked").exists());
+
+        mockMvc.perform(get("/api/admin/users")
+                .header("Authorization", bearer(adminToken))
+                .header("X-Admin-Key", ADMIN_KEY)
+                .param("telegramStatus", "not_connected")
+                .param("search", targetUsername))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].telegramLinked").value(false));
     }
 
     @Test

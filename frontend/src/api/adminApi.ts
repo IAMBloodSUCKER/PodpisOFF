@@ -1,6 +1,7 @@
 import {
   AdminFeedbackItem,
   AdminMetrics,
+  AdminUserListFilters,
   AdminUserRow,
 } from '../types/api';
 import { parseApiError } from './errors';
@@ -60,9 +61,16 @@ export const adminApi = {
   metrics() {
     return adminRequest<AdminMetrics>('/api/admin/metrics');
   },
-  users(plan?: 'all' | 'pro' | 'free') {
-    const suffix = plan && plan !== 'all' ? `?plan=${plan}` : '';
-    return adminRequest<AdminUserRow[]>(`/api/admin/users${suffix}`);
+  users(filters: AdminUserListFilters = {}) {
+    const params = new URLSearchParams();
+    if (filters.plan && filters.plan !== 'all') params.set('plan', filters.plan);
+    if (filters.search) params.set('search', filters.search);
+    if (filters.emailStatus && filters.emailStatus !== 'all') params.set('emailStatus', filters.emailStatus);
+    if (filters.telegramStatus && filters.telegramStatus !== 'all') {
+      params.set('telegramStatus', filters.telegramStatus);
+    }
+    const suffix = params.toString();
+    return adminRequest<AdminUserRow[]>(`/api/admin/users${suffix ? `?${suffix}` : ''}`);
   },
   feedback() {
     return adminRequest<AdminFeedbackItem[]>('/api/admin/feedback');

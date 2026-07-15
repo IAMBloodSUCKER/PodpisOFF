@@ -37,6 +37,13 @@ public class ExportService {
 
     public byte[] exportSubscriptionsExcel() {
         User user = requireProUser();
+        return exportSubscriptionsExcelForUser(user);
+    }
+
+    public byte[] exportSubscriptionsExcelForUser(User user) {
+        if (planAccessService.effectivePlan(user) != Plan.PRO) {
+            throw new ApiException(HttpStatus.FORBIDDEN, PRO_ONLY_MESSAGE);
+        }
         List<Subscription> subscriptions = loadSubscriptions(user);
         try {
             return SubscriptionExcelExporter.export(subscriptions, user.getLocale());

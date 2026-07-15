@@ -281,6 +281,9 @@ export interface AdminUserRow {
   id: number;
   username: string;
   email: string | null;
+  emailNotificationsEnabled: boolean;
+  telegramLinked: boolean;
+  telegramNotificationsEnabled: boolean;
   plan: string;
   effectivePlan: string;
   planExpiresAt: string | null;
@@ -290,4 +293,15 @@ export interface AdminUserRow {
   blockedPermanently: boolean;
   blockedUntil: string | null;
   currentlyBlocked: boolean;
+}
+
+export type AdminUserPlanFilter = 'all' | 'pro' | 'free';
+export type AdminUserEmailFilter = 'all' | 'set' | 'unset' | 'notify_on' | 'notify_off';
+export type AdminUserTelegramFilter = 'all' | 'connected' | 'not_connected' | 'notify_on' | 'notify_off';
+
+export interface AdminUserListFilters {
+  plan?: AdminUserPlanFilter;
+  search?: string;
+  emailStatus?: AdminUserEmailFilter;
+  telegramStatus?: AdminUserTelegramFilter;
 }

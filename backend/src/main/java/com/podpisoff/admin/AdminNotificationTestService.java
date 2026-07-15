@@ -64,7 +64,7 @@ public class AdminNotificationTestService {
             notificationService.createForUserId(
                 userId,
                 NotificationType.ADMIN_TEST,
-                "Тестовое уведомление",
+                "🧪 Тестовое уведомление",
                 bodyForDelay(delaySeconds),
                 null
             );
@@ -76,8 +76,8 @@ public class AdminNotificationTestService {
 
     private static String bodyForDelay(int delaySeconds) {
         if (delaySeconds == 0) {
-            return "Тест из админ-панели — отправлено сразу.";
+            return "✅ Тест из админ-панели — отправлено сразу.";
         }
-        return "Тест из админ-панели — отправлено через " + delaySeconds + " сек.";
+        return "⏱ Тест из админ-панели — отправлено через " + delaySeconds + " сек.";
     }
 }

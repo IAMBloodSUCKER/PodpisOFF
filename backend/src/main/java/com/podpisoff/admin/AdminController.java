@@ -50,9 +50,12 @@ public class AdminController {
 
     @GetMapping("/users")
     public List<AdminUserResponse> users(HttpServletRequest request,
-                                         @RequestParam(required = false) String plan) {
+                                         @RequestParam(required = false) String plan,
+                                         @RequestParam(required = false) String search,
+                                         @RequestParam(required = false) String emailStatus,
+                                         @RequestParam(required = false) String telegramStatus) {
         adminAccessService.requireAdminKey(request);
-        return adminMetricsService.users(plan);
+        return adminMetricsService.users(AdminUserListFilters.of(plan, search, emailStatus, telegramStatus));
     }
 
     @GetMapping("/feedback")
