@@ -47,6 +47,7 @@ public class BillingService {
                 PlanLimits.FREE_SUBSCRIPTION_LIMIT,
                 PlanLimits.FREE_REMINDER_LIMIT,
                 List.of(
+                    "planFeatureProTrial",
                     "planFeatureSubs3",
                     "planFeatureDashboard",
                     "planFeatureBillingReminders",

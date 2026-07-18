@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 public class PlanAccessService {
 
     public static final int FREE_RECURRING_TRIAL_DAYS = 30;
+    public static final int PRO_TRIAL_DAYS = 7;
     public static final String FREE_CURRENCY = "RUB";
 
     public Plan effectivePlan(User user) {

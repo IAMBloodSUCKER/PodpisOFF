@@ -10,6 +10,7 @@ export const FALLBACK_PLANS: BillingPlan[] = [
     subscriptionLimit: 3,
     reminderLimit: 5,
     featureKeys: [
+      'planFeatureProTrial',
       'planFeatureSubs3',
       'planFeatureDashboard',
       'planFeatureBillingReminders',

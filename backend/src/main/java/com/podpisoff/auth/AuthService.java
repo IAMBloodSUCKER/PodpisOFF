@@ -6,6 +6,7 @@ import com.podpisoff.user.Plan;
 import com.podpisoff.user.PlanAccessService;
 import com.podpisoff.user.User;
 import com.podpisoff.user.UserRepository;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -55,7 +56,8 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRecoveryKeyHash(passwordEncoder.encode(recoveryKey));
         user.setEmail(request.email() == null || request.email().isBlank() ? null : request.email().trim());
-        user.setPlan(Plan.FREE);
+        user.setPlan(Plan.PRO);
+        user.setPlanExpiresAt(LocalDateTime.now().plusDays(PlanAccessService.PRO_TRIAL_DAYS));
         user.setTimezone(request.timezone().trim());
         user.setLocale(request.locale());
         user.setTermsAccepted(true);

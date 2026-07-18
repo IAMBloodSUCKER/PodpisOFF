@@ -49,11 +49,14 @@ class AuthIntegrationTest {
                 .content(registerBody))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.auth.token").isNotEmpty())
+            .andExpect(jsonPath("$.auth.plan").value("PRO"))
+            .andExpect(jsonPath("$.auth.planExpiresAt").isNotEmpty())
             .andExpect(jsonPath("$.recoveryKey").isNotEmpty())
             .andReturn();
 
         JsonNode registerJson = objectMapper.readTree(registerResult.getResponse().getContentAsString());
         String recoveryKey = registerJson.get("recoveryKey").asText();
+        assertThat(registerJson.path("auth").path("planExpiresAt").asText()).isNotBlank();
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)

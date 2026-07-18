@@ -18,6 +18,15 @@ class PlanAccessServiceTest {
     private final PlanAccessService service = new PlanAccessService();
 
     @Test
+    void effectivePlanTreatsActiveProTrialAsPro() {
+        User user = new User();
+        user.setPlan(Plan.PRO);
+        user.setPlanExpiresAt(LocalDateTime.now().plusDays(PlanAccessService.PRO_TRIAL_DAYS));
+
+        assertEquals(Plan.PRO, service.effectivePlan(user));
+    }
+
+    @Test
     void effectivePlanTreatsExpiredProAsFree() {
         User user = new User();
         user.setPlan(Plan.PRO);

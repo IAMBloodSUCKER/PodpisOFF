@@ -9,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.podpisoff.user.Plan;
+import com.podpisoff.user.User;
+import com.podpisoff.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,16 +33,21 @@ class SubscriptionIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserRepository userRepository;
+
     private String token;
+    private String username;
 
     @BeforeEach
     void setUp() throws Exception {
-        String username = "subuser_" + System.nanoTime();
+        username = "subuser_" + System.nanoTime();
         token = registerUser(username);
     }
 
     @Test
     void subscriptionCrudAndFreeLimit() throws Exception {
+        switchToFreePlan();
         long editId = 0;
         for (int i = 1; i <= 3; i++) {
             MvcResult created = createSubscription("Sub " + i, "cat" + i, "2026-08-" + (10 + i))
@@ -88,6 +96,7 @@ class SubscriptionIntegrationTest {
 
     @Test
     void freePlanRejectsForeignCurrency() throws Exception {
+        switchToFreePlan();
         createSubscription("Netflix", "streaming", "2026-07-15", "USD")
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message").value("Foreign currencies are available only for PRO plan"));
@@ -156,11 +165,19 @@ class SubscriptionIntegrationTest {
 
     @Test
     void exportRequiresPro() throws Exception {
+        switchToFreePlan();
         createSubscription("ExportMe", "misc", "2026-08-01");
 
         mockMvc.perform(get("/api/export/subscriptions.xlsx").header("Authorization", bearer(token)))
             .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message").value("Export is available only for PRO plan"));
+    }
+
+    private void switchToFreePlan() {
+        User user = userRepository.findByUsernameIgnoreCase(username).orElseThrow();
+        user.setPlan(Plan.FREE);
+        user.setPlanExpiresAt(null);
+        userRepository.save(user);
     }
 
     @Test
