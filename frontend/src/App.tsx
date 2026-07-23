@@ -5,6 +5,7 @@ import { ReminderAlertsProvider } from './context/ReminderAlertsContext';
 import { NotificationSoundUnlock } from './components/NotificationSoundUnlock';
 import { useAuth } from './context/AuthContext';
 import { AuthPage } from './pages/AuthPage';
+import { OAuthCallbackPage } from './pages/OAuthCallbackPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { HelpPage } from './pages/HelpPage';
@@ -24,6 +25,7 @@ export default function App() {
       <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/oauth/callback" element={<OAuthCallbackPage />} />
       <Route
         path="/dashboard"
         element={

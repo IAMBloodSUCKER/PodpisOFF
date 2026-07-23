@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/api';
 import { resolveApiError } from '../api/errors';
 import { AuthHelpPanel } from '../components/AuthHelpPanel';
@@ -15,6 +15,15 @@ import { CaptchaResponse, AuthResponse } from '../types/api';
 type Mode = 'login' | 'register' | 'recover';
 
 const CAPTCHA_REFRESH_MS = 8 * 60 * 1000;
+
+const OAUTH_ERROR_KEYS: Record<string, string> = {
+  oauth_denied: 'errorOAuthDenied',
+  oauth_missing_code: 'errorOAuthFailed',
+  oauth_blocked: 'errorAccountBlocked',
+  oauth_unavailable: 'errorOAuthUnavailable',
+  oauth_failed: 'errorOAuthFailed',
+  oauth_terms: 'errorOAuthTermsRequired',
+};
 
 export function AuthPage() {
   const [mode, setMode] = useState<Mode>('login');
@@ -36,6 +45,7 @@ export function AuthPage() {
   const { t, locale, setLocale } = useI18n();
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const captchaRequired = mode === 'register' || mode === 'recover';
 
@@ -118,6 +128,16 @@ export function AuthPage() {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const oauthError = searchParams.get('oauthError');
+    if (!oauthError) return;
+    const key = OAUTH_ERROR_KEYS[oauthError] ?? 'errorOAuthFailed';
+    setError(t(key));
+    const next = new URLSearchParams(searchParams);
+    next.delete('oauthError');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, t]);
 
   useEffect(() => {
     if (!captchaRequired) {
@@ -274,13 +294,13 @@ export function AuthPage() {
           {mode === 'register' && <p className="field-hint">{t('authPasswordHint')}</p>}
           {mode === 'recover' && <p className="field-hint">{t('authNewPasswordHint')}</p>}
 
-          {mode === 'register' && (
+          {(mode === 'login' || mode === 'register') && (
             <>
               <label className="remember">
                 <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} />
                 <span>{t('authTerms')}</span>
               </label>
-              <TermsPanel />
+              {mode === 'register' && <TermsPanel />}
             </>
           )}
 
@@ -335,7 +355,13 @@ export function AuthPage() {
                   : t('authRecoverAction')}
           </button>
 
-          {(mode === 'login' || mode === 'register') && <AuthOAuthButtons />}
+          {(mode === 'login' || mode === 'register') && (
+            <AuthOAuthButtons
+              termsAccepted={termsAccepted}
+              rememberMe={rememberMe}
+              onRequireTerms={() => setError(t('errorOAuthTermsRequired'))}
+            />
+          )}
         </form>
         </div>
         <AuthHelpPanel />

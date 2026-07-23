@@ -40,6 +40,11 @@ app:
     enabled: ${MAIL_ENABLED:false}
     from: ${MAIL_FROM:reminders@podpisoff.app}
   site-url: ${APP_URL:http://localhost:3000}
+  oauth:
+    yandex:
+      client-id: ${YANDEX_OAUTH_CLIENT_ID:}
+      client-secret: ${YANDEX_OAUTH_CLIENT_SECRET:}
+      redirect-uri: ${YANDEX_OAUTH_REDIRECT_URI:http://localhost:8080/api/auth/oauth/yandex/callback}
   telegram:
     bot-token: ${TELEGRAM_BOT_TOKEN:}
     bot-username: ${TELEGRAM_BOT_USERNAME:}

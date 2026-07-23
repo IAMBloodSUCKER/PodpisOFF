@@ -123,6 +123,10 @@ export const api = {
   me() {
     return request<AuthResponse>('/api/auth/me');
   },
+  exchangeOAuthTicket(ticket: string) {
+    const params = new URLSearchParams({ ticket });
+    return request<AuthResponse>(`/api/auth/oauth/ticket?${params.toString()}`);
+  },
   updateSettings(payload: SettingsUpdateRequest) {
     return request<AuthResponse>('/api/settings', {
       method: 'PATCH',

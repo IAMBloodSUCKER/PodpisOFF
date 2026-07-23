@@ -34,6 +34,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/telegram/webhook").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login", "/api/auth/recover-password", "/api/auth/captcha").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/auth/username-check").permitAll()
+                .requestMatchers(HttpMethod.GET,
+                    "/api/auth/oauth/providers",
+                    "/api/auth/oauth/yandex/start",
+                    "/api/auth/oauth/yandex/callback",
+                    "/api/auth/oauth/ticket"
+                ).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
             )

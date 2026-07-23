@@ -36,6 +36,8 @@ const MESSAGE_KEYS: Record<string, string> = {
   'Terms must be accepted': 'errorTermsRequired',
   'User not found': 'errorUserNotFound',
   'Password must not match username': 'errorPasswordSameAsUsername',
+  'Account is blocked': 'errorAccountBlocked',
+  'Yandex OAuth is not configured': 'errorOAuthUnavailable',
   Unauthorized: 'errorUnauthorized',
   'FREE plan allows up to 3 subscriptions': 'errorSubscriptionLimit',
   'FREE plan allows up to 5 reminders': 'errorReminderLimit',
