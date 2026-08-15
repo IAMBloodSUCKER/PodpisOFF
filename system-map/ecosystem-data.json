@@ -1,0 +1,298 @@
+{
+  "summary": "PodpisOFF (SubOFF) is a Spring Boot 3.4 + React 19 monolith for tracking subscriptions, reminders, and spend analytics. Traffic enters via Caddy→nginx (prod) or Vite proxy (dev) into a JWT-secured REST API on :8080 backed by PostgreSQL 16 + Flyway. Payments are stubbed (mock YooKassa URL); reminder delivery has no scheduler yet — only Telegram polling is scheduled.",
+  "groups": [
+    {
+      "id": "client",
+      "label": "Clients",
+      "color": "#3fb950",
+      "blurb": "Browser PWA and Telegram users that hit the product surface."
+    },
+    {
+      "id": "edge",
+      "label": "Edge / Ingress",
+      "color": "#4c9aff",
+      "blurb": "TLS termination and reverse proxies that serve static assets and /api."
+    },
+    {
+      "id": "backend",
+      "label": "Application",
+      "color": "#bc8cff",
+      "blurb": "Single Spring Boot process: auth, subscriptions, dashboard, notifications, Telegram, admin."
+    },
+    {
+      "id": "payment",
+      "label": "Billing",
+      "color": "#f85149",
+      "blurb": "Plan catalog and create-payment stub; real YooKassa HTTP not implemented."
+    },
+    {
+      "id": "datastore",
+      "label": "Datastores",
+      "color": "#d29922",
+      "blurb": "PostgreSQL is the system of record (JPA + Flyway V1–V14)."
+    },
+    {
+      "id": "infra",
+      "label": "External SaaS",
+      "color": "#8b949e",
+      "blurb": "Third-party APIs the code actually calls or configures."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "spa",
+      "label": "Web PWA (SPA)",
+      "group": "client",
+      "status": "operational",
+      "sublabel": "React 19 · Vite 6 · :5173/:3000",
+      "detail": "React Router app with manual service worker (sw.js) and manifest; calls relative /api via fetch."
+    },
+    {
+      "id": "tg-user",
+      "label": "Telegram user",
+      "group": "client",
+      "status": "operational",
+      "sublabel": "Bot chats",
+      "detail": "End users interact with PodpisOFF_bot after account linking via deep-link tokens."
+    },
+    {
+      "id": "caddy",
+      "label": "Caddy",
+      "group": "edge",
+      "status": "operational",
+      "sublabel": "deploy/Caddyfile · :80/:443",
+      "detail": "Prod edge on podpisoff.ru / www — reverse_proxies to frontend:80 (TLS via Caddy)."
+    },
+    {
+      "id": "nginx",
+      "label": "Frontend nginx",
+      "group": "edge",
+      "status": "operational",
+      "sublabel": "nginx 1.27 · SPA + /api/",
+      "detail": "Serves built SPA and proxies location /api/ to backend:8080/api/ (frontend/nginx.conf)."
+    },
+    {
+      "id": "api",
+      "label": "REST API",
+      "group": "backend",
+      "status": "operational",
+      "sublabel": "Spring Boot 3.4 · Java 17 · :8080",
+      "detail": "PodpisoffBackendApplication monolith exposing /api/** controllers with actuator health on /actuator/health."
+    },
+    {
+      "id": "auth",
+      "label": "Auth + OAuth",
+      "group": "backend",
+      "status": "operational",
+      "sublabel": "JWT jjwt · Yandex OAuth",
+      "detail": "Register/login/recovery-key, math captcha, Yandex OAuth start/callback/ticket; OAuth state held in-process ConcurrentHashMap."
+    },
+    {
+      "id": "subs",
+      "label": "Subscriptions",
+      "group": "backend",
+      "status": "operational",
+      "sublabel": "CRUD + month charges",
+      "detail": "Subscription CRUD, month-charge overrides, billing-period math; feeds dashboard summary/analytics."
+    },
+    {
+      "id": "reminders",
+      "label": "Reminders",
+      "group": "backend",
+      "status": "degraded",
+      "sublabel": "CRUD only · no cron",
+      "detail": "Reminder entity CRUD with ONCE/MONTHLY/YEARLY schedule helpers — no @Scheduled job fires due reminders."
+    },
+    {
+      "id": "notify",
+      "label": "Notifications",
+      "group": "backend",
+      "status": "operational",
+      "sublabel": "in-app + fan-out",
+      "detail": "Persists user_notifications and fans out to Web Push, email (if enabled), and Telegram."
+    },
+    {
+      "id": "push",
+      "label": "Web Push",
+      "group": "backend",
+      "status": "operational",
+      "sublabel": "VAPID · web-push 5.1.1",
+      "detail": "Stores push_subscriptions; PushServiceFacade sends via nl.martijndwars.web-push (keys in app.push.*)."
+    },
+    {
+      "id": "telegram",
+      "label": "Telegram bot svc",
+      "group": "backend",
+      "status": "operational",
+      "sublabel": "webhook or poll 2s",
+      "detail": "Webhook POST /api/telegram/webhook or TelegramPollingService @Scheduled(fixedDelay=2000); menus, export, link tokens."
+    },
+    {
+      "id": "admin",
+      "label": "Admin API",
+      "group": "backend",
+      "status": "operational",
+      "sublabel": "JWT + X-Admin-Key",
+      "detail": "Metrics, user block/plan/delete, feedback reply, test notifications — gated by AdminAccessService."
+    },
+    {
+      "id": "billing",
+      "label": "BillingService",
+      "group": "payment",
+      "status": "beta",
+      "sublabel": "plans + create-payment stub",
+      "detail": "Returns Free/Pro plan catalog; createPayment requires YOOKASSA_* then returns mock-payments.podpisoff.local URL — no real YooKassa HTTP."
+    },
+    {
+      "id": "postgres",
+      "label": "PostgreSQL 16",
+      "group": "datastore",
+      "status": "operational",
+      "sublabel": "Flyway V1–V14 · JPA validate",
+      "detail": "Primary store for users, subscriptions, reminders, notifications, push, feedback, OAuth identities, login events, telegram link tokens."
+    },
+    {
+      "id": "yandex",
+      "label": "Yandex OAuth",
+      "group": "infra",
+      "status": "operational",
+      "sublabel": "oauth.yandex.ru",
+      "detail": "YandexOAuthClient calls authorize/token and login.yandex.ru/info when client id/secret configured."
+    },
+    {
+      "id": "tg-api",
+      "label": "Telegram Bot API",
+      "group": "infra",
+      "status": "operational",
+      "sublabel": "api.telegram.org",
+      "detail": "TelegramBotApiClient sends messages/documents; optional webhook registration on startup."
+    },
+    {
+      "id": "smtp",
+      "label": "SMTP mail",
+      "group": "infra",
+      "status": "planned",
+      "sublabel": "app.mail.enabled=false",
+      "detail": "EmailNotificationService uses JavaMailSender when mail enabled; default MAIL_ENABLED=false and no spring.mail host in main yml."
+    },
+    {
+      "id": "yookassa",
+      "label": "ЮKassa",
+      "group": "payment",
+      "status": "planned",
+      "sublabel": "credentials gate only",
+      "detail": "Shop id/secret read from env; docs defer real integration — webhook endpoint not implemented in BillingController."
+    }
+  ],
+  "links": [
+    { "source": "spa", "target": "caddy", "kind": "control", "label": "HTTPS (prod)" },
+    { "source": "caddy", "target": "nginx", "kind": "control", "label": "reverse_proxy" },
+    { "source": "spa", "target": "nginx", "kind": "control", "label": "static + /api (docker)" },
+    { "source": "nginx", "target": "api", "kind": "control", "label": "/api/ → :8080" },
+    { "source": "spa", "target": "api", "kind": "control", "label": "fetch /api (dev proxy)" },
+    { "source": "api", "target": "auth", "kind": "control", "label": "auth package" },
+    { "source": "api", "target": "subs", "kind": "control", "label": "subscriptions" },
+    { "source": "api", "target": "reminders", "kind": "control", "label": "reminders CRUD" },
+    { "source": "api", "target": "notify", "kind": "control", "label": "notifications" },
+    { "source": "api", "target": "telegram", "kind": "control", "label": "bot + webhook" },
+    { "source": "api", "target": "admin", "kind": "control", "label": "/api/admin" },
+    { "source": "api", "target": "billing", "kind": "control", "label": "/api/billing" },
+    { "source": "api", "target": "push", "kind": "control", "label": "/api/push" },
+    { "source": "auth", "target": "postgres", "kind": "data", "label": "users · oauth · login_events" },
+    { "source": "subs", "target": "postgres", "kind": "data", "label": "subscriptions · month_charges" },
+    { "source": "reminders", "target": "postgres", "kind": "data", "label": "reminders" },
+    { "source": "notify", "target": "postgres", "kind": "data", "label": "user_notifications" },
+    { "source": "push", "target": "postgres", "kind": "data", "label": "push_subscriptions" },
+    { "source": "telegram", "target": "postgres", "kind": "data", "label": "link tokens · users" },
+    { "source": "admin", "target": "postgres", "kind": "data", "label": "users · feedback" },
+    { "source": "auth", "target": "yandex", "kind": "auth", "label": "token + /info" },
+    { "source": "telegram", "target": "tg-api", "kind": "control", "label": "Bot API" },
+    { "source": "tg-user", "target": "tg-api", "kind": "control", "label": "user ↔ bot" },
+    { "source": "tg-api", "target": "telegram", "kind": "control", "label": "updates" },
+    { "source": "notify", "target": "push", "kind": "control", "label": "fan-out" },
+    { "source": "notify", "target": "smtp", "kind": "control", "label": "email if enabled" },
+    { "source": "notify", "target": "telegram", "kind": "control", "label": "TG notify" },
+    { "source": "billing", "target": "yookassa", "kind": "payment", "label": "stub / not wired" },
+    { "source": "spa", "target": "push", "kind": "control", "label": "subscribe + SW" }
+  ],
+  "liveEndpoints": [
+    {
+      "url": "http://localhost:8080/actuator/health",
+      "method": "GET",
+      "returns": "Spring Actuator health status (permitAll)",
+      "safe": true,
+      "mapsTo": "api health dot"
+    },
+    {
+      "url": "http://localhost:8080/api/auth/oauth/providers",
+      "method": "GET",
+      "returns": "{ yandex: boolean } — config flag only",
+      "safe": true,
+      "mapsTo": "yandex node availability chip"
+    }
+  ],
+  "productionReadiness": [
+    {
+      "rank": 1,
+      "area": "YooKassa payments",
+      "status": "gap",
+      "severity": "P0",
+      "why": "createPayment returns mock-payments.podpisoff.local even when credentials are set; no webhook controller.",
+      "nextStep": "Implement real YooKassa API + webhook signature verify, or keep credentials empty until ready."
+    },
+    {
+      "rank": 2,
+      "area": "Reminder delivery cron",
+      "status": "gap",
+      "severity": "P0",
+      "why": "Only TelegramPollingService is @Scheduled; due reminders never auto-fire from a job.",
+      "nextStep": "Add a scheduled ReminderDispatch job that fans out via NotificationService."
+    },
+    {
+      "rank": 3,
+      "area": "Secrets defaults",
+      "status": "gap",
+      "severity": "P0",
+      "why": "Default JWT secret, ADMIN_PANEL_KEY, and VAPID keys are committed in application.yml / .env.example.",
+      "nextStep": "Require env-only secrets in prod profile; rotate any keys that shipped in git."
+    },
+    {
+      "rank": 4,
+      "area": "OAuth/captcha state store",
+      "status": "partial",
+      "severity": "P1",
+      "why": "OAuthFlowStore and CaptchaService use in-process ConcurrentHashMap — lost on restart, not multi-instance safe.",
+      "nextStep": "Move tickets/captcha to Redis or DB with TTL."
+    },
+    {
+      "rank": 5,
+      "area": "Swagger permitAll",
+      "status": "gap",
+      "severity": "P1",
+      "why": "/swagger-ui/** and /v3/api-docs/** are publicly reachable.",
+      "nextStep": "Disable springdoc in prod or protect with auth/network policy."
+    },
+    {
+      "rank": 6,
+      "area": "Email channel",
+      "status": "partial",
+      "severity": "P2",
+      "why": "Mail stack present but MAIL_ENABLED defaults false; no spring.mail host in main resources.",
+      "nextStep": "Wire SMTP/Resend env and enable in prod when reminders ship."
+    },
+    {
+      "rank": 7,
+      "area": "Actuator via edge",
+      "status": "partial",
+      "severity": "P2",
+      "why": "Prod Caddy only proxies to frontend; nginx proxies /api/ only — /actuator/health is not on the public domain path documented in DEPLOYMENT.md.",
+      "nextStep": "Expose a dedicated health route or adjust Caddy/nginx for ops checks."
+    }
+  ],
+  "headlineStats": [
+    { "label": "Compose services", "value": "3", "live": false, "note": "postgres · backend · frontend" },
+    { "label": "JPA entities", "value": "10", "live": false, "note": "code-counted" },
+    { "label": "API controllers", "value": "16", "live": false, "note": "code-counted" },
+    { "label": "API health", "key": "apiHealth", "live": true }
+  ]
+}

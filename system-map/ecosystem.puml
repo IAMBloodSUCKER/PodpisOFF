@@ -1,0 +1,83 @@
+@startuml
+scale 1.4
+skinparam backgroundColor #05070d
+skinparam shadowing false
+skinparam defaultFontName monospace
+skinparam defaultFontColor #d6e2f5
+skinparam defaultFontSize 17
+skinparam nodesep 16
+skinparam ranksep 70
+skinparam ArrowThickness 1.4
+skinparam ArrowColor #4a5878
+skinparam ArrowFontColor #7d8ca5
+skinparam ArrowFontSize 13
+skinparam linetype ortho
+skinparam package {
+  BorderColor #34406a
+  BorderThickness 1.6
+  FontColor #c9d6ee
+  FontStyle bold
+  FontSize 20
+}
+skinparam rectangle {
+  BorderColor #34406a
+  FontColor #eaf2ff
+  FontSize 16
+  roundCorner 12
+}
+title <color:#eef4ff><size:22>PodpisOFF — Ecosystem (analysed)</size></color>\n<color:#62728c><size:14>18 components · 6 subsystems · meaningful cross-subsystem flows, colored by kind</size></color>
+
+package "Clients" as g_client #3fb95022 {
+  rectangle "Web PWA (SPA)" as n_spa #3fb9501A
+  rectangle "Telegram user" as n_tg_user #3fb9501A
+}
+
+package "Edge / Ingress" as g_edge #4c9aff22 {
+  rectangle "Caddy" as n_caddy #4c9aff1A
+  rectangle "Frontend nginx" as n_nginx #4c9aff1A
+}
+
+package "Application" as g_backend #bc8cff22 {
+  rectangle "REST API" as n_api #bc8cff1A
+  rectangle "Auth + OAuth" as n_auth #bc8cff1A
+  rectangle "Subscriptions" as n_subs #bc8cff1A
+  rectangle "Reminders" as n_reminders #bc8cff1A
+  rectangle "Notifications" as n_notify #bc8cff1A
+  rectangle "Web Push" as n_push #bc8cff1A
+  rectangle "Telegram bot svc" as n_telegram #bc8cff1A
+  rectangle "Admin API" as n_admin #bc8cff1A
+  n_api -[hidden]-> n_notify
+  n_auth -[hidden]-> n_push
+  n_subs -[hidden]-> n_telegram
+  n_reminders -[hidden]-> n_admin
+}
+
+package "Billing" as g_payment #f8514922 {
+  rectangle "BillingService" as n_billing #f851491A
+  rectangle "ЮKassa" as n_yookassa #f851491A
+}
+
+package "Datastores" as g_datastore #d2992222 {
+  rectangle "PostgreSQL 16" as n_postgres #d299221A
+}
+
+package "External SaaS" as g_infra #8b949e22 {
+  rectangle "Yandex OAuth" as n_yandex #8b949e1A
+  rectangle "Telegram Bot API" as n_tg_api #8b949e1A
+  rectangle "SMTP mail" as n_smtp #8b949e1A
+}
+
+n_tg_user -[hidden]-> n_caddy
+n_nginx -[hidden]-> n_api
+n_admin -[hidden]-> n_billing
+n_yookassa -[hidden]-> n_postgres
+n_postgres -[hidden]-> n_yandex
+n_auth -[#d29922]-> n_postgres
+n_subs -[#d29922]-> n_postgres
+n_reminders -[#d29922]-> n_postgres
+n_notify -[#d29922]-> n_postgres
+n_push -[#d29922]-> n_postgres
+n_telegram -[#d29922]-> n_postgres
+n_admin -[#d29922]-> n_postgres
+n_auth -[#bc8cff]-> n_yandex
+@enduml

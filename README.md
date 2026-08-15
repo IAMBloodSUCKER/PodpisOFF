@@ -76,6 +76,23 @@ VPN за 3 990 ₽/год автоматически учитывается в �
 
 ---
 
+## Карта системы
+
+Архитектура в виде 3D-карты и PlantUML-схемы:
+
+![Карта системы](docs/images/system-map-live.png)
+
+Инструкция и ссылки: [`docs/SYSTEM_MAP.md`](docs/SYSTEM_MAP.md).
+
+```powershell
+cd system-map
+npx --yes serve -l 8899 .
+```
+
+Открой http://localhost:8899/ (3D) или http://localhost:8899/diagram.html (схема).
+
+---
+
 ## Лицензия
 
 MIT
@@ -86,5 +103,12 @@ MIT
 <summary>Для разработчиков</summary>
 
 Техническая документация, API, деплой и интеграция платежей — в папке [`docs/`](docs/).
+
+- [Архитектура](docs/ARCHITECTURE.md)
+- [Карта системы](docs/SYSTEM_MAP.md)
+- [API](docs/API.md)
+- [Деплой](docs/DEPLOYMENT.md)
+- [Платежи](docs/PAYMENTS.md)
+- [Telegram-бот](docs/TELEGRAM_BOT.md)
 
 </details>

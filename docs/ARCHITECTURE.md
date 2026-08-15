@@ -13,6 +13,8 @@
 
 ## Диаграмма компонентов
 
+3D-карта и PlantUML: [SYSTEM_MAP.md](SYSTEM_MAP.md) (`system-map/`).
+
 ```mermaid
 flowchart TB
     subgraph Client["Клиент"]
